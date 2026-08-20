@@ -32,32 +32,33 @@ public final class CityBoundaryRenderer {
      *
      * 이 값을 테스트하면서 조절하면 된다.
      */
-    private static final double ACTIVATION_DISTANCE = 48.0;
+    private static final double ACTIVATION_DISTANCE = 128.0;
 
     /*
      * 벽 자체에 가까워질수록 얼마나 진해질지 결정하는 거리.
      *
      * 일반적으로 ACTIVATION_DISTANCE와 같게 두면 자연스럽다.
      */
-    private static final double WALL_PROXIMITY_DISTANCE = 48.0;
+    private static final double FULL_OPACITY_DISTANCE = 36.0;
+    private static final double WALL_PROXIMITY_DISTANCE = 128.0;
 
     /*
      * 플레이어를 기준으로 벽을 좌우 몇 블록까지 렌더링할지.
      */
-    private static final double HORIZONTAL_RADIUS = 36.0;
+    private static final double HORIZONTAL_RADIUS = 128.0;
 
     /*
      * 벽을 따라 좌우로 멀어질수록 fade되는 거리.
      *
      * HORIZONTAL_RADIUS와 비슷하거나 조금 크게 두면 자연스럽다.
      */
-    private static final double ALONG_FADE_DISTANCE = 36.0;
+    private static final double ALONG_FADE_DISTANCE = 128.0;
 
     /*
      * 플레이어 기준 벽 높이.
      */
-    private static final double WALL_BELOW = 18.0;
-    private static final double WALL_ABOVE = 18.0;
+    private static final double WALL_BELOW = 80.0;
+    private static final double WALL_ABOVE = 80.0;
 
     /*
      * 벽을 strip으로 나누는 단위.
@@ -80,7 +81,7 @@ public final class CityBoundaryRenderer {
      * 0   = 완전 투명
      * 255 = 완전 불투명
      */
-    private static final int MAX_ALPHA = 80;
+    private static final int MAX_ALPHA = 140;
 
     private static final ContextKey<List<WallSegment>> WALLS_KEY =
             new ContextKey<>(
@@ -590,9 +591,16 @@ public final class CityBoundaryRenderer {
     private static double calculateWallProximity(
             double distance
     ) {
+        // 8블록 이내에서는 최대 진하기 유지
+        if (distance <= FULL_OPACITY_DISTANCE) {
+            return 1.0;
+        }
+
+        // 8 ~ 32블록 사이에서 1 → 0으로 감소
         double value =
                 1.0 - Mth.clamp(
-                        distance / WALL_PROXIMITY_DISTANCE,
+                        (distance - FULL_OPACITY_DISTANCE)
+                                / (WALL_PROXIMITY_DISTANCE - FULL_OPACITY_DISTANCE),
                         0.0,
                         1.0
                 );
