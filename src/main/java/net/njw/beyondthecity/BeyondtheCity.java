@@ -5,7 +5,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.njw.beyondthecity.city.CityBoundaryHandler;
-import net.njw.beyondthecity.city.CityBoundaryVisualizer;
+import net.njw.beyondthecity.city.CityInteractionHandler;
 
 @Mod(BeyondtheCity.MODID)
 public class BeyondtheCity {
@@ -14,6 +14,6 @@ public class BeyondtheCity {
 
     public BeyondtheCity(IEventBus modEventBus, ModContainer modContainer) {
         NeoForge.EVENT_BUS.register(CityBoundaryHandler.class);
-//        NeoForge.EVENT_BUS.register(CityBoundaryVisualizer.class);
+        NeoForge.EVENT_BUS.register(CityInteractionHandler.class);
     }
 }

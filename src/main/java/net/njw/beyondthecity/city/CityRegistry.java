@@ -18,8 +18,8 @@ public final class CityRegistry {
                             Level.OVERWORLD,
                             0,
                             0,
-                            64,
-                            64
+                            256,
+                            256
                     ),
 
                     Level.NETHER,
@@ -27,8 +27,8 @@ public final class CityRegistry {
                             Level.NETHER,
                             0,
                             0,
-                            8,
-                            8
+                            32,
+                            32
                     )
             )
     );
