@@ -6,14 +6,23 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.njw.beyondthecity.city.CityBoundaryHandler;
 import net.njw.beyondthecity.city.CityInteractionHandler;
+import net.njw.beyondthecity.city.structure.EnderEyeHandler;
+import net.njw.beyondthecity.city.structure.StructureRequirementHandler;
+
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 
 @Mod(BeyondtheCity.MODID)
 public class BeyondtheCity {
 
     public static final String MODID = "njw_beyond_the_city";
 
+    public static final Logger LOGGER = LogUtils.getLogger();
+
     public BeyondtheCity(IEventBus modEventBus, ModContainer modContainer) {
         NeoForge.EVENT_BUS.register(CityBoundaryHandler.class);
         NeoForge.EVENT_BUS.register(CityInteractionHandler.class);
+        NeoForge.EVENT_BUS.register(StructureRequirementHandler.class);
+        NeoForge.EVENT_BUS.register(EnderEyeHandler.class);
     }
 }

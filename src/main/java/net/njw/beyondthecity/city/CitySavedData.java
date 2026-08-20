@@ -22,22 +22,30 @@ public final class CitySavedData extends SavedData {
                             .fieldOf("dimension")
                             .forGetter(SafePosition::dimension),
 
-                    Codec.DOUBLE.fieldOf("x")
+                    Codec.DOUBLE
+                            .fieldOf("x")
                             .forGetter(SafePosition::x),
 
-                    Codec.DOUBLE.fieldOf("y")
+                    Codec.DOUBLE
+                            .fieldOf("y")
                             .forGetter(SafePosition::y),
 
-                    Codec.DOUBLE.fieldOf("z")
+                    Codec.DOUBLE
+                            .fieldOf("z")
                             .forGetter(SafePosition::z),
 
-                    Codec.FLOAT.fieldOf("yRot")
+                    Codec.FLOAT
+                            .fieldOf("yRot")
                             .forGetter(SafePosition::yRot),
 
-                    Codec.FLOAT.fieldOf("xRot")
+                    Codec.FLOAT
+                            .fieldOf("xRot")
                             .forGetter(SafePosition::xRot)
 
-            ).apply(instance, SafePosition::new));
+            ).apply(
+                    instance,
+                    SafePosition::new
+            ));
 
     private static final Codec<Map<String, SafePosition>> PLAYER_POSITIONS_CODEC =
             Codec.unboundedMap(
@@ -46,21 +54,25 @@ public final class CitySavedData extends SavedData {
             );
 
     private static final Codec<Set<UUID>> PENDING_RETURNS_CODEC =
-            Codec.STRING.listOf().xmap(
-                    list -> {
-                        Set<UUID> result = new HashSet<>();
+            Codec.STRING
+                    .listOf()
+                    .xmap(
+                            list -> {
+                                Set<UUID> result = new HashSet<>();
 
-                        for (String value : list) {
-                            result.add(UUID.fromString(value));
-                        }
+                                for (String value : list) {
+                                    result.add(
+                                            UUID.fromString(value)
+                                    );
+                                }
 
-                        return result;
-                    },
+                                return result;
+                            },
 
-                    set -> set.stream()
-                            .map(UUID::toString)
-                            .toList()
-            );
+                            set -> set.stream()
+                                    .map(UUID::toString)
+                                    .toList()
+                    );
 
     public static final SavedDataType<CitySavedData> TYPE =
             new SavedDataType<>(
@@ -74,22 +86,43 @@ public final class CitySavedData extends SavedData {
                     RecordCodecBuilder.create(instance -> instance.group(
                             PLAYER_POSITIONS_CODEC
                                     .fieldOf("playerPositions")
-                                    .forGetter(data -> data.serializedPositions),
+                                    .forGetter(
+                                            data ->
+                                                    data.serializedPositions
+                                    ),
 
                             PENDING_RETURNS_CODEC
                                     .optionalFieldOf(
                                             "pendingReturns",
                                             Set.of()
                                     )
-                                    .forGetter(data -> data.pendingReturns)
+                                    .forGetter(
+                                            data ->
+                                                    data.pendingReturns
+                                    ),
 
-                    ).apply(instance, CitySavedData::new)),
+                            Codec.BOOL
+                                    .optionalFieldOf(
+                                            "structureRequirementsInitialized",
+                                            false
+                                    )
+                                    .forGetter(
+                                            data ->
+                                                    data.structureRequirementsInitialized
+                                    )
+
+                    ).apply(
+                            instance,
+                            CitySavedData::new
+                    )),
 
                     null
             );
 
     /*
-     * 저장 형식:
+     * 플레이어별, 차원별 마지막 정상 위치.
+     *
+     * Key 형식:
      *
      * UUID + "|" + dimension
      *
@@ -104,22 +137,36 @@ public final class CitySavedData extends SavedData {
      */
     private final Set<UUID> pendingReturns;
 
+    /*
+     * 시작 도시의 필수 구조물
+     * Stronghold / Fortress 검사를 이미 완료했는지 여부.
+     */
+    private boolean structureRequirementsInitialized;
+
     public CitySavedData() {
         this.serializedPositions = new HashMap<>();
         this.pendingReturns = new HashSet<>();
+        this.structureRequirementsInitialized = false;
     }
 
     private CitySavedData(
             Map<String, SafePosition> positions,
-            Set<UUID> pendingReturns
+            Set<UUID> pendingReturns,
+            boolean structureRequirementsInitialized
     ) {
         this.serializedPositions =
                 new HashMap<>(positions);
 
         this.pendingReturns =
                 new HashSet<>(pendingReturns);
+
+        this.structureRequirementsInitialized =
+                structureRequirementsInitialized;
     }
 
+    /*
+     * 마지막 정상 위치 저장.
+     */
     public void setLastValidPosition(
             UUID playerId,
             ResourceKey<Level> dimension,
@@ -149,6 +196,9 @@ public final class CitySavedData extends SavedData {
         setDirty();
     }
 
+    /*
+     * 특정 플레이어의 특정 차원 마지막 정상 위치 반환.
+     */
     public SafePosition getLastValidPosition(
             UUID playerId,
             ResourceKey<Level> dimension
@@ -161,18 +211,52 @@ public final class CitySavedData extends SavedData {
         );
     }
 
-    public void markPendingReturn(UUID playerId) {
+    /*
+     * 다음 로그인 시 즉시 도시 내부로 복귀하도록 표시.
+     */
+    public void markPendingReturn(
+            UUID playerId
+    ) {
         if (pendingReturns.add(playerId)) {
             setDirty();
         }
     }
 
-    public boolean hasPendingReturn(UUID playerId) {
-        return pendingReturns.contains(playerId);
+    /*
+     * 로그인 시 강제 복귀가 필요한 플레이어인지 확인.
+     */
+    public boolean hasPendingReturn(
+            UUID playerId
+    ) {
+        return pendingReturns.contains(
+                playerId
+        );
     }
 
-    public void clearPendingReturn(UUID playerId) {
+    /*
+     * 강제 복귀 처리 완료 후 상태 제거.
+     */
+    public void clearPendingReturn(
+            UUID playerId
+    ) {
         if (pendingReturns.remove(playerId)) {
+            setDirty();
+        }
+    }
+
+    /*
+     * 시작 도시 필수 구조물 검사가 이미 끝났는지 확인.
+     */
+    public boolean areStructureRequirementsInitialized() {
+        return structureRequirementsInitialized;
+    }
+
+    /*
+     * 필수 구조물 검사가 끝났음을 영구 저장.
+     */
+    public void markStructureRequirementsInitialized() {
+        if (!structureRequirementsInitialized) {
+            structureRequirementsInitialized = true;
             setDirty();
         }
     }
