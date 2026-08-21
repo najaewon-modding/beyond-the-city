@@ -19,7 +19,7 @@ public final class CityAccessManager {
             return false;
         }
 
-        return CityManager.isInsideAnyCity(
+        return CityManager.isInsideAccessibleCity(
                 server,
                 player.level().dimension(),
                 player.getBlockX(),
@@ -39,7 +39,7 @@ public final class CityAccessManager {
             return false;
         }
 
-        return CityManager.isInsideAnyCity(
+        return CityManager.isInsideAccessibleCity(
                 server,
                 player.level().dimension(),
                 blockX,
@@ -58,7 +58,7 @@ public final class CityAccessManager {
             return false;
         }
 
-        return CityManager.isInsideAnyCity(
+        return CityManager.isInsideAccessibleCity(
                 server,
                 entity.level().dimension(),
                 entity.getBlockX(),

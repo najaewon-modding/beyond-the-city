@@ -16,7 +16,6 @@ public final class CityRegistry {
                     Map.of(
                             Level.OVERWORLD,
                             new CityRegion(
-                                    Level.OVERWORLD,
                                     0,
                                     0,
                                     256,
@@ -25,7 +24,6 @@ public final class CityRegistry {
 
                             Level.NETHER,
                             new CityRegion(
-                                    Level.NETHER,
                                     0,
                                     0,
                                     32,

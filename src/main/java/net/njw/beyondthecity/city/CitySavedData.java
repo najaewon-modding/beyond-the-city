@@ -8,71 +8,222 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 public final class CitySavedData extends SavedData {
 
-    private static final Codec<SafePosition> SAFE_POSITION_CODEC =
+    /*
+     * =========================================================
+     * Safe Position Codec
+     * =========================================================
+     */
+
+    private static final Codec<SafePosition>
+            SAFE_POSITION_CODEC =
             RecordCodecBuilder.create(instance -> instance.group(
                     Level.RESOURCE_KEY_CODEC
                             .fieldOf("dimension")
-                            .forGetter(SafePosition::dimension),
+                            .forGetter(
+                                    SafePosition::dimension
+                            ),
 
                     Codec.DOUBLE
                             .fieldOf("x")
-                            .forGetter(SafePosition::x),
+                            .forGetter(
+                                    SafePosition::x
+                            ),
 
                     Codec.DOUBLE
                             .fieldOf("y")
-                            .forGetter(SafePosition::y),
+                            .forGetter(
+                                    SafePosition::y
+                            ),
 
                     Codec.DOUBLE
                             .fieldOf("z")
-                            .forGetter(SafePosition::z),
+                            .forGetter(
+                                    SafePosition::z
+                            ),
 
                     Codec.FLOAT
                             .fieldOf("yRot")
-                            .forGetter(SafePosition::yRot),
+                            .forGetter(
+                                    SafePosition::yRot
+                            ),
 
                     Codec.FLOAT
                             .fieldOf("xRot")
-                            .forGetter(SafePosition::xRot)
+                            .forGetter(
+                                    SafePosition::xRot
+                            )
 
             ).apply(
                     instance,
                     SafePosition::new
             ));
 
-    private static final Codec<Map<String, SafePosition>> PLAYER_POSITIONS_CODEC =
+    private static final Codec<Map<String, SafePosition>>
+            PLAYER_POSITIONS_CODEC =
             Codec.unboundedMap(
                     Codec.STRING,
                     SAFE_POSITION_CODEC
             );
 
-    private static final Codec<Set<UUID>> PENDING_RETURNS_CODEC =
+    /*
+     * =========================================================
+     * Pending Return Codec
+     * =========================================================
+     */
+
+    private static final Codec<Set<UUID>>
+            PENDING_RETURNS_CODEC =
             Codec.STRING
                     .listOf()
                     .xmap(
                             list -> {
-                                Set<UUID> result = new HashSet<>();
+                                Set<UUID> result =
+                                        new LinkedHashSet<>();
 
                                 for (String value : list) {
                                     result.add(
-                                            UUID.fromString(value)
+                                            UUID.fromString(
+                                                    value
+                                            )
                                     );
                                 }
 
                                 return result;
                             },
 
-                            set -> set.stream()
-                                    .map(UUID::toString)
-                                    .toList()
+                            set ->
+                                    set.stream()
+                                            .map(UUID::toString)
+                                            .sorted()
+                                            .toList()
                     );
+
+    /*
+     * =========================================================
+     * City Codec
+     * =========================================================
+     */
+
+    /*
+     * 메모리에서는:
+     *
+     * Map<String, City>
+     *
+     * 형태로 사용한다.
+     *
+     * 저장할 때는 City 자체가 id를 가지고 있으므로
+     * List<City> 형태로 기록해서
+     * city id를 중복 저장하지 않는다.
+     */
+    private static final Codec<Map<String, City>>
+            CITIES_CODEC =
+            City.CODEC
+                    .listOf()
+                    .xmap(
+                            list -> {
+                                Map<String, City> result =
+                                        new LinkedHashMap<>();
+
+                                for (City city : list) {
+                                    City previous =
+                                            result.putIfAbsent(
+                                                    city.id(),
+                                                    city
+                                            );
+
+                                    if (previous != null) {
+                                        throw new IllegalArgumentException(
+                                                "Duplicate city id: "
+                                                        + city.id()
+                                        );
+                                    }
+                                }
+
+                                return result;
+                            },
+
+                            map ->
+                                    new ArrayList<>(
+                                            map.values()
+                                    )
+                    );
+
+    /*
+     * =========================================================
+     * Accessible City Codec
+     * =========================================================
+     */
+
+    private static final Codec<Set<String>>
+            ACCESSIBLE_CITY_IDS_CODEC =
+            Codec.STRING
+                    .listOf()
+                    .xmap(
+                            LinkedHashSet::new,
+
+                            set ->
+                                    new ArrayList<>(
+                                            set
+                                    )
+                    );
+
+    /*
+     * =========================================================
+     * Pregeneration Codec
+     * =========================================================
+     */
+
+    private static final Codec<PregenerationState>
+            PREGENERATION_STATE_CODEC =
+            RecordCodecBuilder.create(instance -> instance.group(
+                    Codec.LONG
+                            .optionalFieldOf(
+                                    "generatedChunks",
+                                    0L
+                            )
+                            .forGetter(
+                                    PregenerationState::generatedChunks
+                            ),
+
+                    Codec.BOOL
+                            .optionalFieldOf(
+                                    "completed",
+                                    false
+                            )
+                            .forGetter(
+                                    PregenerationState::completed
+                            )
+
+            ).apply(
+                    instance,
+                    PregenerationState::new
+            ));
+
+    private static final Codec<Map<String, PregenerationState>>
+            PREGENERATION_STATES_CODEC =
+            Codec.unboundedMap(
+                    Codec.STRING,
+                    PREGENERATION_STATE_CODEC
+            );
+
+    /*
+     * =========================================================
+     * SavedData Type
+     * =========================================================
+     */
 
     public static final SavedDataType<CitySavedData> TYPE =
             new SavedDataType<>(
@@ -85,7 +236,9 @@ public final class CitySavedData extends SavedData {
 
                     RecordCodecBuilder.create(instance -> instance.group(
                             PLAYER_POSITIONS_CODEC
-                                    .fieldOf("playerPositions")
+                                    .fieldOf(
+                                            "playerPositions"
+                                    )
                                     .forGetter(
                                             data ->
                                                     data.serializedPositions
@@ -111,44 +264,34 @@ public final class CitySavedData extends SavedData {
                                                     data.structureRequirementsInitialized
                                     ),
 
-                            Codec.LONG
+                            PREGENERATION_STATES_CODEC
                                     .optionalFieldOf(
-                                            "overworldPregeneratedChunks",
-                                            0L
+                                            "pregenerationStates",
+                                            Map.of()
                                     )
                                     .forGetter(
                                             data ->
-                                                    data.overworldPregeneratedChunks
+                                                    data.pregenerationStates
                                     ),
 
-                            Codec.LONG
+                            CITIES_CODEC
                                     .optionalFieldOf(
-                                            "netherPregeneratedChunks",
-                                            0L
+                                            "cities",
+                                            Map.of()
                                     )
                                     .forGetter(
                                             data ->
-                                                    data.netherPregeneratedChunks
+                                                    data.cities
                                     ),
 
-                            Codec.BOOL
+                            ACCESSIBLE_CITY_IDS_CODEC
                                     .optionalFieldOf(
-                                            "overworldPregenerationCompleted",
-                                            false
+                                            "accessibleCityIds",
+                                            Set.of()
                                     )
                                     .forGetter(
                                             data ->
-                                                    data.overworldPregenerationCompleted
-                                    ),
-
-                            Codec.BOOL
-                                    .optionalFieldOf(
-                                            "netherPregenerationCompleted",
-                                            false
-                                    )
-                                    .forGetter(
-                                            data ->
-                                                    data.netherPregenerationCompleted
+                                                    data.accessibleCityIds
                                     )
 
                     ).apply(
@@ -160,75 +303,351 @@ public final class CitySavedData extends SavedData {
             );
 
     /*
+     * =========================================================
+     * Fields
+     * =========================================================
+     */
+
+    /*
      * 플레이어별, 차원별 마지막 정상 위치.
      *
-     * Key 형식:
+     * Key:
      *
      * UUID + "|" + dimension
-     *
-     * 예:
-     * xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx|minecraft:overworld
      */
-    private final Map<String, SafePosition> serializedPositions;
+    private final Map<String, SafePosition>
+            serializedPositions;
 
     /*
      * 경계 밖에서 로그아웃하여
-     * 다음 접속 시 강제 복귀가 필요한 플레이어.
+     * 다음 로그인 시 강제 복귀해야 하는 플레이어.
      */
-    private final Set<UUID> pendingReturns;
+    private final Set<UUID>
+            pendingReturns;
 
     /*
-     * 시작 도시의 필수 구조물
-     * Stronghold / Fortress 검사를 이미 완료했는지 여부.
+     * 현재는 Starting City에 대한
+     * Stronghold / Fortress 검사 완료 여부.
      */
-    private boolean structureRequirementsInitialized;
+    private boolean
+            structureRequirementsInitialized;
+
+    /*
+     * 도시별 / 차원별 pregeneration 상태.
+     *
+     * Key:
+     *
+     * cityId + "|" + dimension
+     */
+    private final Map<String, PregenerationState>
+            pregenerationStates;
+
+    /*
+     * 현재 이 월드에 존재하는 모든 도시.
+     *
+     * Key:
+     *
+     * city id
+     */
+    private final Map<String, City>
+            cities;
+
+    /*
+     * 현재 플레이어가 접근 가능한 도시들의 id.
+     *
+     * 도시의 존재 여부와 접근 가능 여부를
+     * 분리해서 관리한다.
+     */
+    private final Set<String>
+            accessibleCityIds;
+
+    /*
+     * =========================================================
+     * Constructors
+     * =========================================================
+     */
 
     public CitySavedData() {
-        this.serializedPositions = new HashMap<>();
-        this.pendingReturns = new HashSet<>();
-        this.structureRequirementsInitialized = false;
+        this.serializedPositions =
+                new HashMap<>();
 
-        this.overworldPregeneratedChunks = 0L;
-        this.netherPregeneratedChunks = 0L;
+        this.pendingReturns =
+                new LinkedHashSet<>();
 
-        this.overworldPregenerationCompleted = false;
-        this.netherPregenerationCompleted = false;
+        this.structureRequirementsInitialized =
+                false;
+
+        this.pregenerationStates =
+                new HashMap<>();
+
+        this.cities =
+                new LinkedHashMap<>();
+
+        this.accessibleCityIds =
+                new LinkedHashSet<>();
+
+        initializeStartingCity();
     }
 
     private CitySavedData(
             Map<String, SafePosition> positions,
             Set<UUID> pendingReturns,
             boolean structureRequirementsInitialized,
-            long overworldPregeneratedChunks,
-            long netherPregeneratedChunks,
-            boolean overworldPregenerationCompleted,
-            boolean netherPregenerationCompleted
+            Map<String, PregenerationState> pregenerationStates,
+            Map<String, City> cities,
+            Set<String> accessibleCityIds
     ) {
         this.serializedPositions =
-                new HashMap<>(positions);
+                new HashMap<>(
+                        positions
+                );
 
         this.pendingReturns =
-                new HashSet<>(pendingReturns);
+                new LinkedHashSet<>(
+                        pendingReturns
+                );
 
         this.structureRequirementsInitialized =
                 structureRequirementsInitialized;
 
-        this.overworldPregeneratedChunks =
-                overworldPregeneratedChunks;
+        this.pregenerationStates =
+                new HashMap<>(
+                        pregenerationStates
+                );
 
-        this.netherPregeneratedChunks =
-                netherPregeneratedChunks;
+        this.cities =
+                new LinkedHashMap<>(
+                        cities
+                );
 
-        this.overworldPregenerationCompleted =
-                overworldPregenerationCompleted;
+        this.accessibleCityIds =
+                new LinkedHashSet<>(
+                        accessibleCityIds
+                );
 
-        this.netherPregenerationCompleted =
-                netherPregenerationCompleted;
+        normalizeCityData();
     }
 
     /*
-     * 마지막 정상 위치 저장.
+     * =========================================================
+     * City Initialization
+     * =========================================================
      */
+
+    private void initializeStartingCity() {
+        cities.put(
+                CityRegistry.STARTING_CITY_ID,
+                CityRegistry.STARTING_CITY_TEMPLATE
+        );
+
+        accessibleCityIds.add(
+                CityRegistry.STARTING_CITY_ID
+        );
+    }
+
+    /*
+     * 저장 데이터가 잘못된 상태가 되더라도
+     * 최소한 Starting City는 항상 존재하고
+     * 접근 가능한 상태가 되도록 보정한다.
+     */
+    private void normalizeCityData() {
+        /*
+         * 존재하지 않는 도시 id가
+         * accessibleCityIds에 들어 있는 경우 제거.
+         */
+        accessibleCityIds.retainAll(
+                cities.keySet()
+        );
+
+        /*
+         * Starting City가 없다면 다시 생성.
+         */
+        cities.putIfAbsent(
+                CityRegistry.STARTING_CITY_ID,
+                CityRegistry.STARTING_CITY_TEMPLATE
+        );
+
+        /*
+         * Starting City는 항상 접근 가능.
+         */
+        accessibleCityIds.add(
+                CityRegistry.STARTING_CITY_ID
+        );
+    }
+
+    /*
+     * =========================================================
+     * Cities
+     * =========================================================
+     */
+
+    /**
+     * 현재 월드에 존재하는 모든 도시를 반환한다.
+     */
+    public Collection<City> getCities() {
+        return List.copyOf(
+                cities.values()
+        );
+    }
+
+    /**
+     * 특정 id의 도시를 반환한다.
+     *
+     * 존재하지 않으면 null.
+     */
+    public City getCity(
+            String cityId
+    ) {
+        return cities.get(
+                cityId
+        );
+    }
+
+    public boolean hasCity(
+            String cityId
+    ) {
+        return cities.containsKey(
+                cityId
+        );
+    }
+
+    /**
+     * 새로운 도시를 월드에 등록한다.
+     *
+     * 등록만 하고 접근 가능 상태로 만들지는 않는다.
+     */
+    public void addCity(
+            City city
+    ) {
+        Objects.requireNonNull(
+                city,
+                "city"
+        );
+
+        if (
+                cities.containsKey(
+                        city.id()
+                )
+        ) {
+            throw new IllegalArgumentException(
+                    "City already exists: "
+                            + city.id()
+            );
+        }
+
+        cities.put(
+                city.id(),
+                city
+        );
+
+        setDirty();
+    }
+
+    /**
+     * 새 도시를 등록하는 동시에
+     * 접근 가능 상태로 만든다.
+     */
+    public void addAccessibleCity(
+            City city
+    ) {
+        Objects.requireNonNull(
+                city,
+                "city"
+        );
+
+        if (
+                cities.containsKey(
+                        city.id()
+                )
+        ) {
+            throw new IllegalArgumentException(
+                    "City already exists: "
+                            + city.id()
+            );
+        }
+
+        cities.put(
+                city.id(),
+                city
+        );
+
+        accessibleCityIds.add(
+                city.id()
+        );
+
+        setDirty();
+    }
+
+    /*
+     * =========================================================
+     * Accessible Cities
+     * =========================================================
+     */
+
+    public Collection<City> getAccessibleCities() {
+        List<City> result =
+                new ArrayList<>();
+
+        for (String cityId :
+                accessibleCityIds) {
+
+            City city =
+                    cities.get(
+                            cityId
+                    );
+
+            if (city != null) {
+                result.add(
+                        city
+                );
+            }
+        }
+
+        return List.copyOf(
+                result
+        );
+    }
+
+    public boolean isCityAccessible(
+            String cityId
+    ) {
+        return accessibleCityIds.contains(
+                cityId
+        );
+    }
+
+    /**
+     * 이미 존재하는 도시를 접근 가능 상태로 변경한다.
+     */
+    public void unlockCity(
+            String cityId
+    ) {
+        if (
+                !cities.containsKey(
+                        cityId
+                )
+        ) {
+            throw new IllegalArgumentException(
+                    "Unknown city: "
+                            + cityId
+            );
+        }
+
+        if (
+                accessibleCityIds.add(
+                        cityId
+                )
+        ) {
+            setDirty();
+        }
+    }
+
+    /*
+     * =========================================================
+     * Safe Position
+     * =========================================================
+     */
+
     public void setLastValidPosition(
             UUID playerId,
             ResourceKey<Level> dimension,
@@ -238,10 +657,11 @@ public final class CitySavedData extends SavedData {
             float yRot,
             float xRot
     ) {
-        String key = createKey(
-                playerId,
-                dimension
-        );
+        String key =
+                createPlayerPositionKey(
+                        playerId,
+                        dimension
+                );
 
         serializedPositions.put(
                 key,
@@ -258,15 +678,12 @@ public final class CitySavedData extends SavedData {
         setDirty();
     }
 
-    /*
-     * 특정 플레이어의 특정 차원 마지막 정상 위치 반환.
-     */
     public SafePosition getLastValidPosition(
             UUID playerId,
             ResourceKey<Level> dimension
     ) {
         return serializedPositions.get(
-                createKey(
+                createPlayerPositionKey(
                         playerId,
                         dimension
                 )
@@ -274,19 +691,23 @@ public final class CitySavedData extends SavedData {
     }
 
     /*
-     * 다음 로그인 시 즉시 도시 내부로 복귀하도록 표시.
+     * =========================================================
+     * Pending Return
+     * =========================================================
      */
+
     public void markPendingReturn(
             UUID playerId
     ) {
-        if (pendingReturns.add(playerId)) {
+        if (
+                pendingReturns.add(
+                        playerId
+                )
+        ) {
             setDirty();
         }
     }
 
-    /*
-     * 로그인 시 강제 복귀가 필요한 플레이어인지 확인.
-     */
     public boolean hasPendingReturn(
             UUID playerId
     ) {
@@ -295,35 +716,178 @@ public final class CitySavedData extends SavedData {
         );
     }
 
-    /*
-     * 강제 복귀 처리 완료 후 상태 제거.
-     */
     public void clearPendingReturn(
             UUID playerId
     ) {
-        if (pendingReturns.remove(playerId)) {
+        if (
+                pendingReturns.remove(
+                        playerId
+                )
+        ) {
             setDirty();
         }
     }
 
     /*
-     * 시작 도시 필수 구조물 검사가 이미 끝났는지 확인.
+     * =========================================================
+     * Structure Requirements
+     * =========================================================
      */
+
     public boolean areStructureRequirementsInitialized() {
         return structureRequirementsInitialized;
     }
 
-    /*
-     * 필수 구조물 검사가 끝났음을 영구 저장.
-     */
     public void markStructureRequirementsInitialized() {
-        if (!structureRequirementsInitialized) {
-            structureRequirementsInitialized = true;
+        if (
+                structureRequirementsInitialized
+        ) {
+            return;
+        }
+
+        structureRequirementsInitialized =
+                true;
+
+        setDirty();
+    }
+
+    /*
+     * =========================================================
+     * Pregeneration
+     * =========================================================
+     */
+
+    public PregenerationState getPregenerationState(
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        return pregenerationStates.getOrDefault(
+                createPregenerationKey(
+                        cityId,
+                        dimension
+                ),
+                PregenerationState.EMPTY
+        );
+    }
+
+    public long getPregeneratedChunks(
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        return getPregenerationState(
+                cityId,
+                dimension
+        ).generatedChunks();
+    }
+
+    public boolean isPregenerationCompleted(
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        return getPregenerationState(
+                cityId,
+                dimension
+        ).completed();
+    }
+
+    public void setPregeneratedChunks(
+            String cityId,
+            ResourceKey<Level> dimension,
+            long generatedChunks
+    ) {
+        if (generatedChunks < 0L) {
+            throw new IllegalArgumentException(
+                    "generatedChunks must be greater than or equal to 0."
+            );
+        }
+
+        String key =
+                createPregenerationKey(
+                        cityId,
+                        dimension
+                );
+
+        PregenerationState current =
+                pregenerationStates.getOrDefault(
+                        key,
+                        PregenerationState.EMPTY
+                );
+
+        if (
+                current.generatedChunks()
+                        == generatedChunks
+        ) {
+            return;
+        }
+
+        pregenerationStates.put(
+                key,
+                new PregenerationState(
+                        generatedChunks,
+                        current.completed()
+                )
+        );
+
+        setDirty();
+    }
+
+    public void markPregenerationCompleted(
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        String key =
+                createPregenerationKey(
+                        cityId,
+                        dimension
+                );
+
+        PregenerationState current =
+                pregenerationStates.getOrDefault(
+                        key,
+                        PregenerationState.EMPTY
+                );
+
+        if (current.completed()) {
+            return;
+        }
+
+        pregenerationStates.put(
+                key,
+                new PregenerationState(
+                        current.generatedChunks(),
+                        true
+                )
+        );
+
+        setDirty();
+    }
+
+    public void resetPregenerationState(
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        String key =
+                createPregenerationKey(
+                        cityId,
+                        dimension
+                );
+
+        if (
+                pregenerationStates.remove(
+                        key
+                ) != null
+        ) {
             setDirty();
         }
     }
 
-    private static String createKey(
+    /*
+     * =========================================================
+     * Keys
+     * =========================================================
+     */
+
+    private static String createPlayerPositionKey(
             UUID playerId,
             ResourceKey<Level> dimension
     ) {
@@ -331,6 +895,21 @@ public final class CitySavedData extends SavedData {
                 + "|"
                 + dimension.identifier();
     }
+
+    private static String createPregenerationKey(
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        return cityId
+                + "|"
+                + dimension.identifier();
+    }
+
+    /*
+     * =========================================================
+     * Records
+     * =========================================================
+     */
 
     public record SafePosition(
             ResourceKey<Level> dimension,
@@ -342,61 +921,23 @@ public final class CitySavedData extends SavedData {
     ) {
     }
 
-    private long overworldPregeneratedChunks;
-    private long netherPregeneratedChunks;
-
-    private boolean overworldPregenerationCompleted;
-    private boolean netherPregenerationCompleted;
-
-    public long getOverworldPregeneratedChunks() {
-        return overworldPregeneratedChunks;
-    }
-
-    public long getNetherPregeneratedChunks() {
-        return netherPregeneratedChunks;
-    }
-
-    public boolean isOverworldPregenerationCompleted() {
-        return overworldPregenerationCompleted;
-    }
-
-    public boolean isNetherPregenerationCompleted() {
-        return netherPregenerationCompleted;
-    }
-
-    public void setOverworldPregeneratedChunks(
-            long value
+    public record PregenerationState(
+            long generatedChunks,
+            boolean completed
     ) {
-        if (overworldPregeneratedChunks == value) {
-            return;
-        }
 
-        overworldPregeneratedChunks = value;
-        setDirty();
-    }
+        public static final PregenerationState EMPTY =
+                new PregenerationState(
+                        0L,
+                        false
+                );
 
-    public void setNetherPregeneratedChunks(
-            long value
-    ) {
-        if (netherPregeneratedChunks == value) {
-            return;
-        }
-
-        netherPregeneratedChunks = value;
-        setDirty();
-    }
-
-    public void markOverworldPregenerationCompleted() {
-        if (!overworldPregenerationCompleted) {
-            overworldPregenerationCompleted = true;
-            setDirty();
-        }
-    }
-
-    public void markNetherPregenerationCompleted() {
-        if (!netherPregenerationCompleted) {
-            netherPregenerationCompleted = true;
-            setDirty();
+        public PregenerationState {
+            if (generatedChunks < 0L) {
+                throw new IllegalArgumentException(
+                        "generatedChunks must be greater than or equal to 0."
+                );
+            }
         }
     }
 }
