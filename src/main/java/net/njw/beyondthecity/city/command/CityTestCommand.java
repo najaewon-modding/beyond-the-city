@@ -13,6 +13,7 @@ import net.njw.beyondthecity.city.CityManager;
 import net.njw.beyondthecity.city.CityRegion;
 import net.njw.beyondthecity.city.generation.CityPregenerationHandler;
 import net.njw.beyondthecity.city.placement.CityPlacementService;
+import net.njw.beyondthecity.network.CitySyncService;
 
 import java.util.Collection;
 
@@ -187,6 +188,10 @@ public final class CityTestCommand {
                     city
             );
 
+            CitySyncService.syncToAll(
+                    server
+            );
+
             source.sendSuccess(
                     () ->
                             Component.literal(
@@ -338,6 +343,10 @@ public final class CityTestCommand {
         CityPregenerationHandler.enqueueCity(
                 server,
                 city
+        );
+
+        CitySyncService.syncToAll(
+                server
         );
 
         source.sendSuccess(
