@@ -9,7 +9,10 @@ import java.util.NoSuchElementException;
 public final class SpiralChunkIterator
         implements Iterator<ChunkPos> {
 
-    private final CityRegion region;
+    private final int minChunkX;
+    private final int maxChunkX;
+    private final int minChunkZ;
+    private final int maxChunkZ;
 
     private int x;
     private int z;
@@ -25,16 +28,42 @@ public final class SpiralChunkIterator
     private final long totalChunks;
 
     public SpiralChunkIterator(
-            CityRegion region
+            CityRegion region,
+            int marginChunks
     ) {
-        this.region = region;
+        if (marginChunks < 0) {
+            throw new IllegalArgumentException(
+                    "marginChunks must be greater than or equal to 0."
+            );
+        }
+
+        this.minChunkX =
+                region.minChunkX() - marginChunks;
+
+        this.maxChunkX =
+                region.maxChunkX() + marginChunks;
+
+        this.minChunkZ =
+                region.minChunkZ() - marginChunks;
+
+        this.maxChunkZ =
+                region.maxChunkZ() + marginChunks;
 
         this.x = region.centerChunkX();
         this.z = region.centerChunkZ();
 
+        long width =
+                (long) maxChunkX
+                        - minChunkX
+                        + 1;
+
+        long height =
+                (long) maxChunkZ
+                        - minChunkZ
+                        + 1;
+
         this.totalChunks =
-                (long) region.widthChunks()
-                        * region.heightChunks();
+                width * height;
     }
 
     @Override
@@ -54,7 +83,7 @@ public final class SpiralChunkIterator
 
             advance();
 
-            if (!region.containsChunk(
+            if (!containsChunk(
                     currentX,
                     currentZ
             )) {
@@ -68,6 +97,26 @@ public final class SpiralChunkIterator
                     currentZ
             );
         }
+    }
+
+    public void skip(long count) {
+        for (
+                long i = 0;
+                i < count && hasNext();
+                i++
+        ) {
+            next();
+        }
+    }
+
+    private boolean containsChunk(
+            int chunkX,
+            int chunkZ
+    ) {
+        return chunkX >= minChunkX
+                && chunkX <= maxChunkX
+                && chunkZ >= minChunkZ
+                && chunkZ <= maxChunkZ;
     }
 
     private void advance() {
@@ -86,12 +135,6 @@ public final class SpiralChunkIterator
 
         segmentsCompleted++;
 
-        /*
-         * Spiral에서는 같은 길이의 segment를
-         * 두 번 이동한 뒤 길이가 1 증가한다.
-         *
-         * 1, 1, 2, 2, 3, 3, ...
-         */
         if (segmentsCompleted % 2 == 0) {
             segmentLength++;
         }
@@ -104,9 +147,7 @@ public final class SpiralChunkIterator
         dz = oldDx;
     }
 
-    public void skip(long count) {
-        for (long i = 0; i < count && hasNext(); i++) {
-            next();
-        }
+    public long getTotalChunks() {
+        return totalChunks;
     }
 }

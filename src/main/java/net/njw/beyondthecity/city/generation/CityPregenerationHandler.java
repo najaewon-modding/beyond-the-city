@@ -9,34 +9,52 @@ import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.njw.beyondthecity.BeyondtheCity;
 import net.njw.beyondthecity.city.City;
+import net.njw.beyondthecity.city.CityManager;
 import net.njw.beyondthecity.city.CityRegion;
-import net.njw.beyondthecity.city.CityRegistry;
 import net.njw.beyondthecity.city.CitySavedData;
 
 public final class CityPregenerationHandler {
 
     /*
-     * 한 tick마다 생성할 청크 수.
+     * 실제 도시 경계보다 추가로 pregenerate할 청크 수.
      */
-    private static final int CHUNKS_PER_TICK = 2;
+    private static final int PREGENERATION_MARGIN_CHUNKS = 24;
 
     /*
-     * 진행 상태를 몇 청크마다 SavedData에 기록할지.
+     * 몇 청크마다 진행 상황을 로그에 출력할지.
+     */
+    private static final int LOG_INTERVAL_CHUNKS = 100;
+
+    /*
+     * 몇 청크마다 진행 상태를 SavedData에 기록할지.
      */
     private static final int SAVE_INTERVAL_CHUNKS = 100;
+
+    /*
+     * 한 server tick에서 pregeneration에 사용할
+     * 목표 최대 시간.
+     *
+     * 5 ms = 5,000,000 ns
+     */
+    private static final long TIME_BUDGET_NANOS =
+            5_000_000L;
+
+    /*
+     * 매우 빠르게 청크가 처리되는 경우에도
+     * 한 tick에 지나치게 많은 청크를 처리하지 않도록
+     * 추가로 거는 안전장치.
+     */
+    private static final int MAX_CHUNKS_PER_TICK = 8;
 
     private static CityPregenerator overworldPregenerator;
     private static CityPregenerator netherPregenerator;
 
     private static CitySavedData savedData;
 
-    private static int lastLoggedOverworldProgress = -1;
-    private static int lastLoggedNetherProgress = -1;
-
     /*
      * Pregeneration 작업이 현재 활성 상태인지.
      *
-     * 완료 후 매 tick마다 완료 로그가 반복되는 것을 방지한다.
+     * 완료된 후 매 tick마다 완료 로그가 반복되는 것을 방지한다.
      */
     private static boolean active = false;
 
@@ -51,10 +69,14 @@ public final class CityPregenerationHandler {
                 event.getServer();
 
         ServerLevel overworld =
-                server.getLevel(Level.OVERWORLD);
+                server.getLevel(
+                        Level.OVERWORLD
+                );
 
         ServerLevel nether =
-                server.getLevel(Level.NETHER);
+                server.getLevel(
+                        Level.NETHER
+                );
 
         if (overworld == null || nether == null) {
             return;
@@ -67,7 +89,9 @@ public final class CityPregenerationHandler {
                         );
 
         City city =
-                CityRegistry.STARTING_CITY;
+                CityManager.getStartingCity(
+                        server
+                );
 
         CityRegion overworldRegion =
                 city.getRegion(
@@ -91,6 +115,7 @@ public final class CityPregenerationHandler {
                     new CityPregenerator(
                             overworld,
                             overworldRegion,
+                            PREGENERATION_MARGIN_CHUNKS,
                             savedData
                                     .getOverworldPregeneratedChunks()
                     );
@@ -110,15 +135,13 @@ public final class CityPregenerationHandler {
                     new CityPregenerator(
                             nether,
                             netherRegion,
+                            PREGENERATION_MARGIN_CHUNKS,
                             savedData
                                     .getNetherPregeneratedChunks()
                     );
         } else {
             netherPregenerator = null;
         }
-
-        lastLoggedOverworldProgress = -1;
-        lastLoggedNetherProgress = -1;
 
         active =
                 overworldPregenerator != null
@@ -147,24 +170,34 @@ public final class CityPregenerationHandler {
             return;
         }
 
-        int remainingChunks =
-                CHUNKS_PER_TICK;
+        long startTime =
+                System.nanoTime();
+
+        int generatedThisTick = 0;
 
         /*
-         * Overworld 우선 생성.
+         * ---------------------------------------------------------
+         * Overworld 우선 생성
+         * ---------------------------------------------------------
          */
         while (
-                remainingChunks > 0
-                        && overworldPregenerator != null
+                overworldPregenerator != null
                         && !overworldPregenerator.isFinished()
+                        && generatedThisTick
+                        < MAX_CHUNKS_PER_TICK
         ) {
             overworldPregenerator
                     .generateNextChunk();
+
+            generatedThisTick++;
 
             long generated =
                     overworldPregenerator
                             .getGeneratedChunks();
 
+            /*
+             * 일정 청크마다 진행 상태 저장.
+             */
             if (
                     generated
                             % SAVE_INTERVAL_CHUNKS == 0
@@ -175,42 +208,68 @@ public final class CityPregenerationHandler {
                         );
             }
 
-            remainingChunks--;
+            /*
+             * 이번 tick에서 허용된 시간을
+             * 이미 사용했으면 여기서 중단.
+             */
+            if (
+                    System.nanoTime()
+                            - startTime
+                            >= TIME_BUDGET_NANOS
+            ) {
+                break;
+            }
         }
 
         /*
-         * Overworld 완료 후
-         * 남은 budget으로 Nether 생성.
+         * ---------------------------------------------------------
+         * Overworld가 끝났다면
+         * 남은 시간으로 Nether 생성
+         * ---------------------------------------------------------
          */
-        while (
-                remainingChunks > 0
-                        && netherPregenerator != null
-                        && !netherPregenerator.isFinished()
+        if (
+                overworldPregenerator == null
+                        || overworldPregenerator.isFinished()
         ) {
-            netherPregenerator
-                    .generateNextChunk();
-
-            long generated =
-                    netherPregenerator
-                            .getGeneratedChunks();
-
-            if (
-                    generated
-                            % SAVE_INTERVAL_CHUNKS == 0
+            while (
+                    netherPregenerator != null
+                            && !netherPregenerator.isFinished()
+                            && generatedThisTick
+                            < MAX_CHUNKS_PER_TICK
+                            && System.nanoTime()
+                            - startTime
+                            < TIME_BUDGET_NANOS
             ) {
-                savedData
-                        .setNetherPregeneratedChunks(
-                                generated
-                        );
-            }
+                netherPregenerator
+                        .generateNextChunk();
 
-            remainingChunks--;
+                generatedThisTick++;
+
+                long generated =
+                        netherPregenerator
+                                .getGeneratedChunks();
+
+                if (
+                        generated
+                                % SAVE_INTERVAL_CHUNKS == 0
+                ) {
+                    savedData
+                            .setNetherPregeneratedChunks(
+                                    generated
+                            );
+                }
+            }
         }
 
+        /*
+         * 진행 상황 출력.
+         */
         logProgress();
 
         /*
-         * Overworld 완료 처리.
+         * ---------------------------------------------------------
+         * Overworld 완료 처리
+         * ---------------------------------------------------------
          */
         if (
                 overworldPregenerator != null
@@ -237,7 +296,9 @@ public final class CityPregenerationHandler {
         }
 
         /*
-         * Nether 완료 처리.
+         * ---------------------------------------------------------
+         * Nether 완료 처리
+         * ---------------------------------------------------------
          */
         if (
                 netherPregenerator != null
@@ -264,7 +325,9 @@ public final class CityPregenerationHandler {
         }
 
         /*
-         * 모든 차원 완료.
+         * ---------------------------------------------------------
+         * 모든 차원 완료
+         * ---------------------------------------------------------
          */
         if (
                 overworldPregenerator == null
@@ -287,7 +350,11 @@ public final class CityPregenerationHandler {
                     overworldPregenerator
                             .getGeneratedChunks();
 
-            if (generated % 100 == 0 && generated > 0) {
+            if (
+                    generated > 0
+                            && generated
+                            % LOG_INTERVAL_CHUNKS == 0
+            ) {
                 BeyondtheCity.LOGGER.info(
                         "Overworld city pregeneration: {}/{}",
                         generated,
@@ -305,7 +372,11 @@ public final class CityPregenerationHandler {
                     netherPregenerator
                             .getGeneratedChunks();
 
-            if (generated % 100 == 0 && generated > 0) {
+            if (
+                    generated > 0
+                            && generated
+                            % LOG_INTERVAL_CHUNKS == 0
+            ) {
                 BeyondtheCity.LOGGER.info(
                         "Nether city pregeneration: {}/{}",
                         generated,
@@ -327,9 +398,6 @@ public final class CityPregenerationHandler {
         overworldPregenerator = null;
         netherPregenerator = null;
         savedData = null;
-
-        lastLoggedOverworldProgress = -1;
-        lastLoggedNetherProgress = -1;
 
         active = false;
     }

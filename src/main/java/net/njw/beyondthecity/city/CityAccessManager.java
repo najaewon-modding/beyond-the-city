@@ -1,5 +1,6 @@
 package net.njw.beyondthecity.city;
 
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 
@@ -11,18 +12,16 @@ public final class CityAccessManager {
     public static boolean isInsideAccessibleArea(
             ServerPlayer player
     ) {
-        City city = CityRegistry.STARTING_CITY;
+        MinecraftServer server =
+                player.level().getServer();
 
-        CityRegion region =
-                city.getRegion(
-                        player.level().dimension()
-                ).orElse(null);
-
-        if (region == null) {
+        if (server == null) {
             return false;
         }
 
-        return region.containsBlock(
+        return CityManager.isInsideAnyCity(
+                server,
+                player.level().dimension(),
                 player.getBlockX(),
                 player.getBlockZ()
         );
@@ -33,18 +32,16 @@ public final class CityAccessManager {
             int blockX,
             int blockZ
     ) {
-        City city = CityRegistry.STARTING_CITY;
+        MinecraftServer server =
+                player.level().getServer();
 
-        CityRegion region =
-                city.getRegion(
-                        player.level().dimension()
-                ).orElse(null);
-
-        if (region == null) {
+        if (server == null) {
             return false;
         }
 
-        return region.containsBlock(
+        return CityManager.isInsideAnyCity(
+                server,
+                player.level().dimension(),
                 blockX,
                 blockZ
         );
@@ -54,18 +51,16 @@ public final class CityAccessManager {
             ServerPlayer player,
             Entity entity
     ) {
-        City city = CityRegistry.STARTING_CITY;
+        MinecraftServer server =
+                player.level().getServer();
 
-        CityRegion region =
-                city.getRegion(
-                        player.level().dimension()
-                ).orElse(null);
-
-        if (region == null) {
+        if (server == null) {
             return false;
         }
 
-        return region.containsBlock(
+        return CityManager.isInsideAnyCity(
+                server,
+                entity.level().dimension(),
                 entity.getBlockX(),
                 entity.getBlockZ()
         );

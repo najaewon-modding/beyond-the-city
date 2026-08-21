@@ -14,6 +14,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.njw.beyondthecity.BeyondtheCity;
 import net.njw.beyondthecity.city.City;
+import net.njw.beyondthecity.city.CityManager;
 import net.njw.beyondthecity.city.CityRegion;
 import net.njw.beyondthecity.city.CityRegistry;
 
@@ -46,7 +47,10 @@ public final class EnderEyeHandler {
             return;
         }
 
-        City city = CityRegistry.STARTING_CITY;
+        City city =
+                CityManager.getStartingCity(
+                        level.getServer()
+                );
 
         CityRegion region =
                 city.getRegion(Level.OVERWORLD).orElse(null);

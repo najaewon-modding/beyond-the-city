@@ -98,7 +98,8 @@ public final class CityBoundaryRenderer {
     public static void onExtractLevelRenderState(
             ExtractLevelRenderStateEvent event
     ) {
-        City city = CityRegistry.STARTING_CITY;
+        City city =
+                CityRegistry.STARTING_CITY_TEMPLATE;
 
         CityRegion region =
                 city.getRegion(event.getLevel().dimension()).orElse(null);

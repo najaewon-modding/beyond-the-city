@@ -10,20 +10,25 @@ public final class CityPregenerator {
     private final ServerLevel level;
     private final SpiralChunkIterator iterator;
 
-    private long generatedChunks = 0;
+    private long generatedChunks;
     private final long totalChunks;
 
     public CityPregenerator(
             ServerLevel level,
             CityRegion region,
+            int marginChunks,
             long alreadyGeneratedChunks
     ) {
         this.level = level;
-        this.iterator = new SpiralChunkIterator(region);
+
+        this.iterator =
+                new SpiralChunkIterator(
+                        region,
+                        marginChunks
+                );
 
         this.totalChunks =
-                (long) region.widthChunks()
-                        * region.heightChunks();
+                iterator.getTotalChunks();
 
         this.generatedChunks =
                 Math.min(
