@@ -13,9 +13,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import net.njw.beyondthecity.BeyondtheCity;
-import net.njw.beyondthecity.city.City;
 import net.njw.beyondthecity.city.CityRegion;
-import net.njw.beyondthecity.city.CityRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,51 +96,119 @@ public final class CityBoundaryRenderer {
     public static void onExtractLevelRenderState(
             ExtractLevelRenderStateEvent event
     ) {
-        City city =
-                CityRegistry.STARTING_CITY_TEMPLATE;
+        Vec3 camera =
+                event.getCamera()
+                        .position();
 
-        CityRegion region =
-                city.getRegion(event.getLevel().dimension()).orElse(null);
+        Identifier dimension =
+                event.getLevel()
+                        .dimension()
+                        .identifier();
 
-        if (region == null) {
-            return;
-        }
-
-        Vec3 camera = event.getCamera().position();
-
-        double cameraX = camera.x;
-        double cameraY = camera.y;
-        double cameraZ = camera.z;
+        List<WallSegment> walls =
+                new ArrayList<>();
 
         /*
-         * 실제 경계 면 좌표.
+         * 서버로부터 동기화받은
+         * 모든 accessible city를 검사한다.
          */
-        double minX = region.minBlockX();
-        double maxX = region.maxBlockX() + 1.0;
+        for (
+                ClientCityManager.ClientCity city :
+                ClientCityManager.getAccessibleCities()
+        ) {
+            CityRegion region =
+                    city.getRegion(
+                            dimension
+                    );
 
-        double minZ = region.minBlockZ();
-        double maxZ = region.maxBlockZ() + 1.0;
+            /*
+             * 현재 차원에 해당 도시 영역이 없으면
+             * 렌더 대상이 아니다.
+             */
+            if (region == null) {
+                continue;
+            }
 
-        double minY = cameraY - WALL_BELOW;
-        double maxY = cameraY + WALL_ABOVE;
+            collectWallsForRegion(
+                    walls,
+                    region,
+                    camera
+            );
+        }
 
-        List<WallSegment> walls = new ArrayList<>();
+        if (!walls.isEmpty()) {
+            event.getRenderState()
+                    .setRenderData(
+                            WALLS_KEY,
+                            List.copyOf(
+                                    walls
+                            )
+                    );
+        }
+    }
+
+    private static void collectWallsForRegion(
+            List<WallSegment> walls,
+            CityRegion region,
+            Vec3 camera
+    ) {
+        double cameraX =
+                camera.x;
+
+        double cameraY =
+                camera.y;
+
+        double cameraZ =
+                camera.z;
+
+        /*
+         * 실제 도시 경계 면 좌표.
+         */
+        double minX =
+                region.minBlockX();
+
+        double maxX =
+                region.maxBlockX()
+                        + 1.0;
+
+        double minZ =
+                region.minBlockZ();
+
+        double maxZ =
+                region.maxBlockZ()
+                        + 1.0;
+
+        double minY =
+                cameraY
+                        - WALL_BELOW;
+
+        double maxY =
+                cameraY
+                        + WALL_ABOVE;
 
         /*
          * 서쪽 벽.
          */
-        if (Math.abs(cameraX - minX) <= ACTIVATION_DISTANCE) {
-            double startZ = Mth.clamp(
-                    cameraZ - HORIZONTAL_RADIUS,
-                    minZ,
-                    maxZ
-            );
+        if (
+                Math.abs(
+                        cameraX - minX
+                ) <= ACTIVATION_DISTANCE
+        ) {
+            double startZ =
+                    Mth.clamp(
+                            cameraZ
+                                    - HORIZONTAL_RADIUS,
+                            minZ,
+                            maxZ
+                    );
 
-            double endZ = Mth.clamp(
-                    cameraZ + HORIZONTAL_RADIUS,
-                    minZ,
-                    maxZ
-            );
+            double endZ =
+                    Mth.clamp(
+                            cameraZ
+                                    + HORIZONTAL_RADIUS,
+                            minZ,
+                            maxZ
+                    );
 
             if (startZ < endZ) {
                 walls.add(
@@ -160,18 +226,26 @@ public final class CityBoundaryRenderer {
         /*
          * 동쪽 벽.
          */
-        if (Math.abs(cameraX - maxX) <= ACTIVATION_DISTANCE) {
-            double startZ = Mth.clamp(
-                    cameraZ - HORIZONTAL_RADIUS,
-                    minZ,
-                    maxZ
-            );
+        if (
+                Math.abs(
+                        cameraX - maxX
+                ) <= ACTIVATION_DISTANCE
+        ) {
+            double startZ =
+                    Mth.clamp(
+                            cameraZ
+                                    - HORIZONTAL_RADIUS,
+                            minZ,
+                            maxZ
+                    );
 
-            double endZ = Mth.clamp(
-                    cameraZ + HORIZONTAL_RADIUS,
-                    minZ,
-                    maxZ
-            );
+            double endZ =
+                    Mth.clamp(
+                            cameraZ
+                                    + HORIZONTAL_RADIUS,
+                            minZ,
+                            maxZ
+                    );
 
             if (startZ < endZ) {
                 walls.add(
@@ -189,18 +263,26 @@ public final class CityBoundaryRenderer {
         /*
          * 북쪽 벽.
          */
-        if (Math.abs(cameraZ - minZ) <= ACTIVATION_DISTANCE) {
-            double startX = Mth.clamp(
-                    cameraX - HORIZONTAL_RADIUS,
-                    minX,
-                    maxX
-            );
+        if (
+                Math.abs(
+                        cameraZ - minZ
+                ) <= ACTIVATION_DISTANCE
+        ) {
+            double startX =
+                    Mth.clamp(
+                            cameraX
+                                    - HORIZONTAL_RADIUS,
+                            minX,
+                            maxX
+                    );
 
-            double endX = Mth.clamp(
-                    cameraX + HORIZONTAL_RADIUS,
-                    minX,
-                    maxX
-            );
+            double endX =
+                    Mth.clamp(
+                            cameraX
+                                    + HORIZONTAL_RADIUS,
+                            minX,
+                            maxX
+                    );
 
             if (startX < endX) {
                 walls.add(
@@ -218,18 +300,26 @@ public final class CityBoundaryRenderer {
         /*
          * 남쪽 벽.
          */
-        if (Math.abs(cameraZ - maxZ) <= ACTIVATION_DISTANCE) {
-            double startX = Mth.clamp(
-                    cameraX - HORIZONTAL_RADIUS,
-                    minX,
-                    maxX
-            );
+        if (
+                Math.abs(
+                        cameraZ - maxZ
+                ) <= ACTIVATION_DISTANCE
+        ) {
+            double startX =
+                    Mth.clamp(
+                            cameraX
+                                    - HORIZONTAL_RADIUS,
+                            minX,
+                            maxX
+                    );
 
-            double endX = Mth.clamp(
-                    cameraX + HORIZONTAL_RADIUS,
-                    minX,
-                    maxX
-            );
+            double endX =
+                    Mth.clamp(
+                            cameraX
+                                    + HORIZONTAL_RADIUS,
+                            minX,
+                            maxX
+                    );
 
             if (startX < endX) {
                 walls.add(
@@ -242,13 +332,6 @@ public final class CityBoundaryRenderer {
                         )
                 );
             }
-        }
-
-        if (!walls.isEmpty()) {
-            event.getRenderState().setRenderData(
-                    WALLS_KEY,
-                    List.copyOf(walls)
-            );
         }
     }
 

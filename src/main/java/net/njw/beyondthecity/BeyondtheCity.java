@@ -12,6 +12,8 @@ import net.njw.beyondthecity.city.structure.EnderEyeHandler;
 import net.njw.beyondthecity.city.structure.StructureRequirementHandler;
 
 import com.mojang.logging.LogUtils;
+import net.njw.beyondthecity.network.CityNetworkHandler;
+import net.njw.beyondthecity.network.CitySyncService;
 import org.slf4j.Logger;
 
 @Mod(BeyondtheCity.MODID)
@@ -22,11 +24,14 @@ public class BeyondtheCity {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public BeyondtheCity(IEventBus modEventBus, ModContainer modContainer) {
+        modEventBus.addListener(CityNetworkHandler::registerPayloads);
+
         NeoForge.EVENT_BUS.register(CityBoundaryHandler.class);
         NeoForge.EVENT_BUS.register(CityInteractionHandler.class);
         NeoForge.EVENT_BUS.register(StructureRequirementHandler.class);
         NeoForge.EVENT_BUS.register(EnderEyeHandler.class);
         NeoForge.EVENT_BUS.register(CityPregenerationHandler.class);
         NeoForge.EVENT_BUS.register(CityTestCommand.class);
+        NeoForge.EVENT_BUS.register(CitySyncService.class);
     }
 }
