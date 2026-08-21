@@ -109,6 +109,46 @@ public final class CitySavedData extends SavedData {
                                     .forGetter(
                                             data ->
                                                     data.structureRequirementsInitialized
+                                    ),
+
+                            Codec.LONG
+                                    .optionalFieldOf(
+                                            "overworldPregeneratedChunks",
+                                            0L
+                                    )
+                                    .forGetter(
+                                            data ->
+                                                    data.overworldPregeneratedChunks
+                                    ),
+
+                            Codec.LONG
+                                    .optionalFieldOf(
+                                            "netherPregeneratedChunks",
+                                            0L
+                                    )
+                                    .forGetter(
+                                            data ->
+                                                    data.netherPregeneratedChunks
+                                    ),
+
+                            Codec.BOOL
+                                    .optionalFieldOf(
+                                            "overworldPregenerationCompleted",
+                                            false
+                                    )
+                                    .forGetter(
+                                            data ->
+                                                    data.overworldPregenerationCompleted
+                                    ),
+
+                            Codec.BOOL
+                                    .optionalFieldOf(
+                                            "netherPregenerationCompleted",
+                                            false
+                                    )
+                                    .forGetter(
+                                            data ->
+                                                    data.netherPregenerationCompleted
                                     )
 
                     ).apply(
@@ -147,12 +187,22 @@ public final class CitySavedData extends SavedData {
         this.serializedPositions = new HashMap<>();
         this.pendingReturns = new HashSet<>();
         this.structureRequirementsInitialized = false;
+
+        this.overworldPregeneratedChunks = 0L;
+        this.netherPregeneratedChunks = 0L;
+
+        this.overworldPregenerationCompleted = false;
+        this.netherPregenerationCompleted = false;
     }
 
     private CitySavedData(
             Map<String, SafePosition> positions,
             Set<UUID> pendingReturns,
-            boolean structureRequirementsInitialized
+            boolean structureRequirementsInitialized,
+            long overworldPregeneratedChunks,
+            long netherPregeneratedChunks,
+            boolean overworldPregenerationCompleted,
+            boolean netherPregenerationCompleted
     ) {
         this.serializedPositions =
                 new HashMap<>(positions);
@@ -162,6 +212,18 @@ public final class CitySavedData extends SavedData {
 
         this.structureRequirementsInitialized =
                 structureRequirementsInitialized;
+
+        this.overworldPregeneratedChunks =
+                overworldPregeneratedChunks;
+
+        this.netherPregeneratedChunks =
+                netherPregeneratedChunks;
+
+        this.overworldPregenerationCompleted =
+                overworldPregenerationCompleted;
+
+        this.netherPregenerationCompleted =
+                netherPregenerationCompleted;
     }
 
     /*
@@ -278,5 +340,63 @@ public final class CitySavedData extends SavedData {
             float yRot,
             float xRot
     ) {
+    }
+
+    private long overworldPregeneratedChunks;
+    private long netherPregeneratedChunks;
+
+    private boolean overworldPregenerationCompleted;
+    private boolean netherPregenerationCompleted;
+
+    public long getOverworldPregeneratedChunks() {
+        return overworldPregeneratedChunks;
+    }
+
+    public long getNetherPregeneratedChunks() {
+        return netherPregeneratedChunks;
+    }
+
+    public boolean isOverworldPregenerationCompleted() {
+        return overworldPregenerationCompleted;
+    }
+
+    public boolean isNetherPregenerationCompleted() {
+        return netherPregenerationCompleted;
+    }
+
+    public void setOverworldPregeneratedChunks(
+            long value
+    ) {
+        if (overworldPregeneratedChunks == value) {
+            return;
+        }
+
+        overworldPregeneratedChunks = value;
+        setDirty();
+    }
+
+    public void setNetherPregeneratedChunks(
+            long value
+    ) {
+        if (netherPregeneratedChunks == value) {
+            return;
+        }
+
+        netherPregeneratedChunks = value;
+        setDirty();
+    }
+
+    public void markOverworldPregenerationCompleted() {
+        if (!overworldPregenerationCompleted) {
+            overworldPregenerationCompleted = true;
+            setDirty();
+        }
+    }
+
+    public void markNetherPregenerationCompleted() {
+        if (!netherPregenerationCompleted) {
+            netherPregenerationCompleted = true;
+            setDirty();
+        }
     }
 }
