@@ -144,6 +144,9 @@ public final class CityTestCommand {
                                                         )
                                         )
 
+                                        /*
+                                         * /btc city delete <cityId>
+                                         */
                                         .then(
                                                 Commands.literal(
                                                                 "delete"
@@ -217,9 +220,9 @@ public final class CityTestCommand {
 
             source.sendSuccess(
                     () ->
-                            Component.literal(
-                                    "Created accessible city: "
-                                            + city.id()
+                            Component.translatable(
+                                    "command.njw_beyond_the_city.city.created_accessible",
+                                    city.id()
                             ),
                     false
             );
@@ -233,9 +236,9 @@ public final class CityTestCommand {
 
         } catch (RuntimeException exception) {
             source.sendFailure(
-                    Component.literal(
-                            "Failed to create city: "
-                                    + exception.getMessage()
+                    Component.translatable(
+                            "command.njw_beyond_the_city.city.failed_create",
+                            exception.getMessage()
                     )
             );
 
@@ -289,9 +292,9 @@ public final class CityTestCommand {
 
             source.sendSuccess(
                     () ->
-                            Component.literal(
-                                    "Created locked city: "
-                                            + city.id()
+                            Component.translatable(
+                                    "command.njw_beyond_the_city.city.created_locked",
+                                    city.id()
                             ),
                     false
             );
@@ -305,9 +308,9 @@ public final class CityTestCommand {
 
         } catch (RuntimeException exception) {
             source.sendFailure(
-                    Component.literal(
-                            "Failed to create city: "
-                                    + exception.getMessage()
+                    Component.translatable(
+                            "command.njw_beyond_the_city.city.failed_create",
+                            exception.getMessage()
                     )
             );
 
@@ -336,9 +339,9 @@ public final class CityTestCommand {
 
         if (city == null) {
             source.sendFailure(
-                    Component.literal(
-                            "Unknown city: "
-                                    + cityId
+                    Component.translatable(
+                            "command.njw_beyond_the_city.city.unknown",
+                            cityId
                     )
             );
 
@@ -352,9 +355,9 @@ public final class CityTestCommand {
                 )
         ) {
             source.sendFailure(
-                    Component.literal(
-                            "City is already accessible: "
-                                    + cityId
+                    Component.translatable(
+                            "command.njw_beyond_the_city.city.already_accessible",
+                            cityId
                     )
             );
 
@@ -381,9 +384,9 @@ public final class CityTestCommand {
 
         source.sendSuccess(
                 () ->
-                        Component.literal(
-                                "Unlocked city: "
-                                        + cityId
+                        Component.translatable(
+                                "command.njw_beyond_the_city.city.unlocked",
+                                cityId
                         ),
                 false
         );
@@ -413,9 +416,9 @@ public final class CityTestCommand {
 
         source.sendSuccess(
                 () ->
-                        Component.literal(
-                                "Cities: "
-                                        + cityCount
+                        Component.translatable(
+                                "command.njw_beyond_the_city.city.count",
+                                cityCount
                         ),
                 false
         );
@@ -427,22 +430,13 @@ public final class CityTestCommand {
                             city.id()
                     );
 
-            String state =
-                    accessible
-                            ? "accessible"
-                            : "locked";
-
-            String message =
-                    "- "
-                            + city.id()
-                            + " ("
-                            + state
-                            + ")";
-
             source.sendSuccess(
                     () ->
-                            Component.literal(
-                                    message
+                            Component.translatable(
+                                    accessible
+                                            ? "command.njw_beyond_the_city.city.list_entry.accessible"
+                                            : "command.njw_beyond_the_city.city.list_entry.locked",
+                                    city.id()
                             ),
                     false
             );
@@ -472,9 +466,9 @@ public final class CityTestCommand {
 
         if (city == null) {
             source.sendFailure(
-                    Component.literal(
-                            "Unknown city: "
-                                    + cityId
+                    Component.translatable(
+                            "command.njw_beyond_the_city.city.unknown",
+                            cityId
                     )
             );
 
@@ -487,19 +481,28 @@ public final class CityTestCommand {
                         city.id()
                 );
 
-        String state =
-                accessible
-                        ? "accessible"
-                        : "locked";
+        Component state =
+                Component.translatable(
+                        accessible
+                                ? "command.njw_beyond_the_city.city.state.accessible"
+                                : "command.njw_beyond_the_city.city.state.locked"
+                );
 
+        /*
+         * city.name() 자체는 번역하지 않는다.
+         *
+         * 나중에 도시 이름을 사용자가 직접 변경할 수 있도록
+         * 저장된 이름을 그대로 출력한다.
+         */
         source.sendSuccess(
                 () ->
-                        Component.literal(
-                                city.id()
-                                        + " / "
-                                        + city.name()
-                                        + " / "
-                                        + state
+                        Component.translatable(
+                                "command.njw_beyond_the_city.city.info",
+                                city.id(),
+                                Component.literal(
+                                        city.name()
+                                ),
+                                state
                         ),
                 false
         );
@@ -524,7 +527,9 @@ public final class CityTestCommand {
     ) {
         sendRegionCoordinates(
                 source,
-                "Overworld",
+                Component.translatable(
+                        "gui.njw_beyond_the_city.city_list.dimension.overworld"
+                ),
                 city.getRegion(
                         Level.OVERWORLD
                 ).orElse(null)
@@ -532,7 +537,9 @@ public final class CityTestCommand {
 
         sendRegionCoordinates(
                 source,
-                "Nether",
+                Component.translatable(
+                        "gui.njw_beyond_the_city.city_list.dimension.nether"
+                ),
                 city.getRegion(
                         Level.NETHER
                 ).orElse(null)
@@ -541,7 +548,7 @@ public final class CityTestCommand {
 
     private static void sendRegionCoordinates(
             CommandSourceStack source,
-            String dimensionName,
+            Component dimensionName,
             CityRegion region
     ) {
         if (region == null) {
@@ -556,23 +563,15 @@ public final class CityTestCommand {
                 (long) region.centerChunkZ()
                         * BLOCKS_PER_CHUNK;
 
-        String message =
-                "  "
-                        + dimensionName
-                        + ": center chunk=("
-                        + region.centerChunkX()
-                        + ", "
-                        + region.centerChunkZ()
-                        + "), block=("
-                        + centerBlockX
-                        + ", "
-                        + centerBlockZ
-                        + ")";
-
         source.sendSuccess(
                 () ->
-                        Component.literal(
-                                message
+                        Component.translatable(
+                                "command.njw_beyond_the_city.city.coordinates",
+                                dimensionName,
+                                region.centerChunkX(),
+                                region.centerChunkZ(),
+                                centerBlockX,
+                                centerBlockZ
                         ),
                 false
         );
@@ -625,8 +624,8 @@ public final class CityTestCommand {
                 )
         ) {
             source.sendFailure(
-                    Component.literal(
-                            "Starting city cannot be deleted."
+                    Component.translatable(
+                            "command.njw_beyond_the_city.city.starting_delete_forbidden"
                     )
             );
 
@@ -641,9 +640,9 @@ public final class CityTestCommand {
 
         if (city == null) {
             source.sendFailure(
-                    Component.literal(
-                            "Unknown city: "
-                                    + cityId
+                    Component.translatable(
+                            "command.njw_beyond_the_city.city.unknown",
+                            cityId
                     )
             );
 
@@ -671,11 +670,9 @@ public final class CityTestCommand {
                     )
             ) {
                 source.sendFailure(
-                        Component.literal(
-                                "Cannot delete city while player "
-                                        + player.getName()
-                                        .getString()
-                                        + " is inside it."
+                        Component.translatable(
+                                "command.njw_beyond_the_city.city.delete_player_inside",
+                                player.getName()
                         )
                 );
 
@@ -707,9 +704,9 @@ public final class CityTestCommand {
 
         source.sendSuccess(
                 () ->
-                        Component.literal(
-                                "Deleted city: "
-                                        + cityId
+                        Component.translatable(
+                                "command.njw_beyond_the_city.city.deleted",
+                                cityId
                         ),
                 false
         );

@@ -9,6 +9,7 @@ import net.njw.beyondthecity.city.CityInteractionHandler;
 import net.njw.beyondthecity.city.CityTeleportService;
 import net.njw.beyondthecity.city.command.CityTestCommand;
 import net.njw.beyondthecity.city.generation.CityPregenerationHandler;
+import net.njw.beyondthecity.city.progression.CityProgressionHandler;
 import net.njw.beyondthecity.city.structure.EnderEyeHandler;
 import net.njw.beyondthecity.city.structure.StructureRequirementHandler;
 
@@ -34,7 +35,7 @@ public class BeyondtheCity {
         NeoForge.EVENT_BUS.register(CityPregenerationHandler.class);
         NeoForge.EVENT_BUS.register(CityTestCommand.class);
         NeoForge.EVENT_BUS.register(CitySyncService.class);
-
         NeoForge.EVENT_BUS.register(CityTeleportService.class);
+        NeoForge.EVENT_BUS.register(CityProgressionHandler.class);
     }
 }

@@ -185,8 +185,8 @@ public final class CityListScreen extends Screen {
 
     public CityListScreen() {
         super(
-                Component.literal(
-                        "City List"
+                Component.translatable(
+                        "gui.njw_beyond_the_city.city_list.title"
                 )
         );
     }
@@ -464,8 +464,8 @@ public final class CityListScreen extends Screen {
         if (city == null) {
             graphics.text(
                     font,
-                    Component.literal(
-                            "No cities"
+                    Component.translatable(
+                            "gui.njw_beyond_the_city.city_list.empty"
                     ),
                     x,
                     y,
@@ -504,10 +504,10 @@ public final class CityListScreen extends Screen {
 
         graphics.text(
                 font,
-                Component.literal(
+                Component.translatable(
                         city.unlocked()
-                                ? "Unlocked"
-                                : "Locked"
+                                ? "gui.njw_beyond_the_city.city_list.status.unlocked"
+                                : "gui.njw_beyond_the_city.city_list.status.locked"
                 ),
                 x,
                 y + 18,
@@ -541,8 +541,8 @@ public final class CityListScreen extends Screen {
 
             graphics.text(
                     font,
-                    Component.literal(
-                            "Overworld"
+                    Component.translatable(
+                            "gui.njw_beyond_the_city.city_list.dimension.overworld"
                     ),
                     x,
                     y + 44,
@@ -552,11 +552,10 @@ public final class CityListScreen extends Screen {
 
             graphics.text(
                     font,
-                    Component.literal(
-                            "X "
-                                    + blockX
-                                    + "  Z "
-                                    + blockZ
+                    Component.translatable(
+                            "gui.njw_beyond_the_city.city_list.coordinates",
+                            blockX,
+                            blockZ
                     ),
                     x,
                     y + 56,
@@ -589,8 +588,8 @@ public final class CityListScreen extends Screen {
 
             graphics.text(
                     font,
-                    Component.literal(
-                            "Nether"
+                    Component.translatable(
+                            "gui.njw_beyond_the_city.city_list.dimension.nether"
                     ),
                     x,
                     y + 78,
@@ -600,11 +599,10 @@ public final class CityListScreen extends Screen {
 
             graphics.text(
                     font,
-                    Component.literal(
-                            "X "
-                                    + blockX
-                                    + "  Z "
-                                    + blockZ
+                    Component.translatable(
+                            "gui.njw_beyond_the_city.city_list.coordinates",
+                            blockX,
+                            blockZ
                     ),
                     x,
                     y + 90,
@@ -677,8 +675,8 @@ public final class CityListScreen extends Screen {
 
         graphics.centeredText(
                 font,
-                Component.literal(
-                        "Move"
+                Component.translatable(
+                        "gui.njw_beyond_the_city.city_list.move"
                 ),
                 MOVE_BUTTON_X
                         + SMALL_BUTTON_WIDTH / 2,
@@ -731,8 +729,8 @@ public final class CityListScreen extends Screen {
 
         graphics.centeredText(
                 font,
-                Component.literal(
-                        "Close"
+                Component.translatable(
+                        "gui.njw_beyond_the_city.city_list.close"
                 ),
                 CLOSE_BUTTON_X
                         + SMALL_BUTTON_WIDTH / 2,

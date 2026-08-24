@@ -12,8 +12,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerXpEvent;
 public final class CityInteractionHandler {
 
     private static final Component BLOCKED_MESSAGE =
-            Component.literal(
-                    "You cannot interact outside the unlocked city area."
+            Component.translatable(
+                    "message.njw_beyond_the_city.interaction.blocked"
             );
 
     private CityInteractionHandler() {

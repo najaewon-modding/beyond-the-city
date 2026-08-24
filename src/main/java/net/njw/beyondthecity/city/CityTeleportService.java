@@ -212,8 +212,8 @@ public final class CityTeleportService {
                 )
         ) {
             player.sendOverlayMessage(
-                    Component.literal(
-                            "City Move is already being cast."
+                    Component.translatable(
+                            "message.njw_beyond_the_city.city_move.already_casting"
                     )
             );
 
@@ -243,12 +243,11 @@ public final class CityTeleportService {
             if (remainingNanos > 0L) {
 
                 player.sendOverlayMessage(
-                        Component.literal(
-                                "City Move is on cooldown. "
-                                        + formatSeconds(
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.cooldown",
+                                formatSeconds(
                                         remainingNanos
                                 )
-                                        + "s remaining."
                         )
                 );
 
@@ -281,8 +280,8 @@ public final class CityTeleportService {
         if (city == null) {
 
             player.sendOverlayMessage(
-                    Component.literal(
-                            "Unknown city."
+                    Component.translatable(
+                            "message.njw_beyond_the_city.city_move.unknown_city"
                     )
             );
 
@@ -297,8 +296,8 @@ public final class CityTeleportService {
         ) {
 
             player.sendOverlayMessage(
-                    Component.literal(
-                            "This city is locked."
+                    Component.translatable(
+                            "message.njw_beyond_the_city.city_move.city_locked"
                     )
             );
 
@@ -313,8 +312,8 @@ public final class CityTeleportService {
         if (region == null) {
 
             player.sendOverlayMessage(
-                    Component.literal(
-                            "This city does not exist in the current dimension."
+                    Component.translatable(
+                            "message.njw_beyond_the_city.city_move.dimension_unavailable"
                     )
             );
 
@@ -334,8 +333,8 @@ public final class CityTeleportService {
         ) {
 
             player.sendOverlayMessage(
-                    Component.literal(
-                            "You may not move while monsters are nearby."
+                    Component.translatable(
+                            "message.njw_beyond_the_city.city_move.monsters_nearby"
                     )
             );
 
@@ -439,10 +438,11 @@ public final class CityTeleportService {
         );
 
         player.sendOverlayMessage(
-                Component.literal(
-                        "Preparing move to "
-                                + city.name()
-                                + "..."
+                Component.translatable(
+                        "message.njw_beyond_the_city.city_move.preparing",
+                        Component.literal(
+                                city.name()
+                        )
                 )
         );
     }
@@ -515,7 +515,9 @@ public final class CityTeleportService {
 
                 cancelCast(
                         player,
-                        "City Move was interrupted."
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.interrupted"
+                        )
                 );
 
                 continue;
@@ -537,7 +539,9 @@ public final class CityTeleportService {
 
                 cancelCast(
                         player,
-                        "City Move was interrupted because the dimension changed."
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.interrupted_dimension"
+                        )
                 );
 
                 continue;
@@ -573,7 +577,9 @@ public final class CityTeleportService {
 
                 cancelCast(
                         player,
-                        "City Move was interrupted because you moved."
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.interrupted_movement"
+                        )
                 );
 
                 continue;
@@ -593,7 +599,9 @@ public final class CityTeleportService {
 
                 cancelCast(
                         player,
-                        "City Move was interrupted because monsters are nearby."
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.interrupted_monsters"
+                        )
                 );
 
                 continue;
@@ -675,7 +683,9 @@ public final class CityTeleportService {
 
                 cancelCast(
                         player,
-                        "City Move failed because the destination could not be calculated in time."
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.failed_timeout"
+                        )
                 );
 
                 continue;
@@ -699,7 +709,9 @@ public final class CityTeleportService {
 
                 cancelCast(
                         player,
-                        "City Move failed because no safe destination was found."
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.failed_no_destination"
+                        )
                 );
 
                 continue;
@@ -730,7 +742,9 @@ public final class CityTeleportService {
 
                 cancelCast(
                         player,
-                        "City Move failed because the city is no longer available."
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.failed_city_unavailable"
+                        )
                 );
 
                 continue;
@@ -761,7 +775,9 @@ public final class CityTeleportService {
 
                 cancelCast(
                         player,
-                        "City Move failed because the destination is no longer valid."
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.failed_destination_invalid"
+                        )
                 );
 
                 continue;
@@ -800,7 +816,9 @@ public final class CityTeleportService {
 
                 cancelCast(
                         player,
-                        "City Move failed because the destination is no longer safe."
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.failed_destination_unsafe"
+                        )
                 );
 
                 continue;
@@ -820,7 +838,9 @@ public final class CityTeleportService {
 
                 cancelCast(
                         player,
-                        "City Move was interrupted because monsters are nearby."
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.interrupted_monsters"
+                        )
                 );
 
                 continue;
@@ -900,7 +920,9 @@ public final class CityTeleportService {
 
         cancelCast(
                 player,
-                "City Move was interrupted by damage."
+                Component.translatable(
+                        "message.njw_beyond_the_city.city_move.interrupted_damage"
+                )
         );
     }
 
@@ -1208,10 +1230,11 @@ public final class CityTeleportService {
         );
 
         player.sendOverlayMessage(
-                Component.literal(
-                        "Moved to "
-                                + city.name()
-                                + "."
+                Component.translatable(
+                        "message.njw_beyond_the_city.city_move.moved",
+                        Component.literal(
+                                city.name()
+                        )
                 )
         );
     }
@@ -1224,7 +1247,7 @@ public final class CityTeleportService {
 
     private static void cancelCast(
             ServerPlayer player,
-            String message
+            Component message
     ) {
         UUID playerId =
                 player.getUUID();
@@ -1242,12 +1265,10 @@ public final class CityTeleportService {
         );
 
         /*
-         * cast 실패/취소에는 cooldown이 없다.
+         * 실패 / 취소에는 cooldown 없음.
          */
         player.sendOverlayMessage(
-                Component.literal(
-                        message
-                )
+                message
         );
     }
 
@@ -1290,9 +1311,11 @@ public final class CityTeleportService {
                         Mth.createInsecureUUID(
                                 level.getRandom()
                         ),
-                        Component.literal(
-                                "Moving to "
-                                        + city.name()
+                        Component.translatable(
+                                "message.njw_beyond_the_city.city_move.boss_bar",
+                                Component.literal(
+                                        city.name()
+                                )
                         ),
                         BossEvent.BossBarColor.GREEN,
                         BossEvent.BossBarOverlay.PROGRESS

@@ -450,10 +450,9 @@ public final class CityBoundaryHandler {
                         / 1_000_000_000L;
 
         player.sendOverlayMessage(
-                Component.literal(
-                        "Return to the unlocked city area within "
-                                + remainingSeconds
-                                + " seconds."
+                Component.translatable(
+                        "message.njw_beyond_the_city.boundary.return_warning",
+                        remainingSeconds
                 )
         );
     }
@@ -554,8 +553,8 @@ public final class CityBoundaryHandler {
         );
 
         player.sendOverlayMessage(
-                Component.literal(
-                        "You have been returned to the unlocked city area."
+                Component.translatable(
+                        "message.njw_beyond_the_city.boundary.returned"
                 )
         );
 

@@ -74,8 +74,8 @@ public final class EnderEyeHandler {
             );
 
             player.sendOverlayMessage(
-                    Component.literal(
-                            "No accessible stronghold was found in this city."
+                    Component.translatable(
+                            "message.njw_beyond_the_city.ender_eye.no_stronghold"
                     )
             );
 
