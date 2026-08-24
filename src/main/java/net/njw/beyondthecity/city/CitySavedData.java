@@ -21,6 +21,8 @@ import java.util.UUID;
 
 public final class CitySavedData extends SavedData {
 
+
+
     /*
      * =========================================================
      * Safe Position Codec
@@ -182,6 +184,48 @@ public final class CitySavedData extends SavedData {
 
     /*
      * =========================================================
+     * City Arrival Position Codec
+     * =========================================================
+     *
+     * 플레이어별 위치가 아니라
+     * 해당 월드의 도시별 / 차원별 공용 도착점.
+     */
+
+    private static final Codec<CityArrivalPosition>
+            CITY_ARRIVAL_POSITION_CODEC =
+            RecordCodecBuilder.create(instance -> instance.group(
+                    Codec.INT
+                            .fieldOf("blockX")
+                            .forGetter(
+                                    CityArrivalPosition::blockX
+                            ),
+
+                    Codec.INT
+                            .fieldOf("y")
+                            .forGetter(
+                                    CityArrivalPosition::y
+                            ),
+
+                    Codec.INT
+                            .fieldOf("blockZ")
+                            .forGetter(
+                                    CityArrivalPosition::blockZ
+                            )
+
+            ).apply(
+                    instance,
+                    CityArrivalPosition::new
+            ));
+
+    private static final Codec<Map<String, CityArrivalPosition>>
+            CITY_ARRIVAL_POSITIONS_CODEC =
+            Codec.unboundedMap(
+                    Codec.STRING,
+                    CITY_ARRIVAL_POSITION_CODEC
+            );
+
+    /*
+     * =========================================================
      * Pregeneration Codec
      * =========================================================
      */
@@ -292,6 +336,16 @@ public final class CitySavedData extends SavedData {
                                     .forGetter(
                                             data ->
                                                     data.accessibleCityIds
+                                    ),
+
+                            CITY_ARRIVAL_POSITIONS_CODEC
+                                    .optionalFieldOf(
+                                            "cityArrivalPositions",
+                                            Map.of()
+                                    )
+                                    .forGetter(
+                                            data ->
+                                                    data.cityArrivalPositions
                                     )
 
                     ).apply(
@@ -307,6 +361,16 @@ public final class CitySavedData extends SavedData {
      * Fields
      * =========================================================
      */
+
+    /*
+     * 도시별 / 차원별 공용 Move destination.
+     *
+     * Key:
+     *
+     * cityId + "|" + dimension
+     */
+    private final Map<String, CityArrivalPosition>
+            cityArrivalPositions;
 
     /*
      * 플레이어별, 차원별 마지막 정상 위치.
@@ -386,6 +450,9 @@ public final class CitySavedData extends SavedData {
         this.accessibleCityIds =
                 new LinkedHashSet<>();
 
+        this.cityArrivalPositions =
+                new HashMap<>();
+
         initializeStartingCity();
     }
 
@@ -395,7 +462,8 @@ public final class CitySavedData extends SavedData {
             boolean structureRequirementsInitialized,
             Map<String, PregenerationState> pregenerationStates,
             Map<String, City> cities,
-            Set<String> accessibleCityIds
+            Set<String> accessibleCityIds,
+            Map<String, CityArrivalPosition> cityArrivalPositions
     ) {
         this.serializedPositions =
                 new HashMap<>(
@@ -423,6 +491,11 @@ public final class CitySavedData extends SavedData {
         this.accessibleCityIds =
                 new LinkedHashSet<>(
                         accessibleCityIds
+                );
+
+        this.cityArrivalPositions =
+                new HashMap<>(
+                        cityArrivalPositions
                 );
 
         normalizeCityData();
@@ -753,6 +826,145 @@ public final class CitySavedData extends SavedData {
 
     /*
      * =========================================================
+     * City Arrival Position
+     * =========================================================
+     */
+
+    public CityArrivalPosition getCityArrivalPosition(
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        return cityArrivalPositions.get(
+                createCityArrivalPositionKey(
+                        cityId,
+                        dimension
+                )
+        );
+    }
+
+    public void setCityArrivalPosition(
+            String cityId,
+            ResourceKey<Level> dimension,
+            int blockX,
+            int y,
+            int blockZ
+    ) {
+        City targetCity =
+                cities.get(
+                        cityId
+                );
+
+        if (targetCity == null) {
+            throw new IllegalArgumentException(
+                    "Unknown city: "
+                            + cityId
+            );
+        }
+
+        CityRegion region =
+                targetCity.getRegion(
+                        dimension
+                ).orElseThrow(
+                        () ->
+                                new IllegalArgumentException(
+                                        "City does not exist in dimension: "
+                                                + cityId
+                                                + " / "
+                                                + dimension.identifier()
+                                )
+                );
+
+        if (
+                !region.containsBlock(
+                        blockX,
+                        blockZ
+                )
+        ) {
+            throw new IllegalArgumentException(
+                    "Arrival position is outside city region: "
+                            + cityId
+                            + " / "
+                            + dimension.identifier()
+                            + " / "
+                            + blockX
+                            + ", "
+                            + blockZ
+            );
+        }
+
+        String key =
+                createCityArrivalPositionKey(
+                        cityId,
+                        dimension
+                );
+
+        CityArrivalPosition newPosition =
+                new CityArrivalPosition(
+                        blockX,
+                        y,
+                        blockZ
+                );
+
+        CityArrivalPosition previous =
+                cityArrivalPositions.put(
+                        key,
+                        newPosition
+                );
+
+        if (
+                !newPosition.equals(
+                        previous
+                )
+        ) {
+            setDirty();
+        }
+    }
+
+    public void clearCityArrivalPosition(
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        String key =
+                createCityArrivalPositionKey(
+                        cityId,
+                        dimension
+                );
+
+        if (
+                cityArrivalPositions.remove(
+                        key
+                ) != null
+        ) {
+            setDirty();
+        }
+    }
+
+    /*
+     * 나중에 도시 삭제 기능에서 사용.
+     */
+    public void clearCityArrivalPositions(
+            String cityId
+    ) {
+        String prefix =
+                cityId + "|";
+
+        boolean removed =
+                cityArrivalPositions
+                        .keySet()
+                        .removeIf(
+                                key ->
+                                        key.startsWith(
+                                                prefix
+                                        )
+                        );
+
+        if (removed) {
+            setDirty();
+        }
+    }
+
+    /*
+     * =========================================================
      * Pregeneration
      * =========================================================
      */
@@ -905,6 +1117,15 @@ public final class CitySavedData extends SavedData {
                 + dimension.identifier();
     }
 
+    private static String createCityArrivalPositionKey(
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        return cityId
+                + "|"
+                + dimension.identifier();
+    }
+
     /*
      * =========================================================
      * Records
@@ -939,5 +1160,83 @@ public final class CitySavedData extends SavedData {
                 );
             }
         }
+    }
+
+    public record CityArrivalPosition(
+            int blockX,
+            int y,
+            int blockZ
+    ) {
+    }
+
+    public void removeCity(
+            String cityId
+    ) {
+        Objects.requireNonNull(
+                cityId,
+                "cityId"
+        );
+
+        /*
+         * Starting City는 월드의 기본 도시이므로
+         * 삭제할 수 없다.
+         */
+        if (
+                CityRegistry.STARTING_CITY_ID.equals(
+                        cityId
+                )
+        ) {
+            throw new IllegalArgumentException(
+                    "Starting city cannot be deleted."
+            );
+        }
+
+        City removedCity =
+                cities.remove(
+                        cityId
+                );
+
+        if (removedCity == null) {
+            throw new IllegalArgumentException(
+                    "Unknown city: "
+                            + cityId
+            );
+        }
+
+        /*
+         * 접근 가능 목록에서도 제거.
+         */
+        accessibleCityIds.remove(
+                cityId
+        );
+
+        /*
+         * 해당 도시의 pregeneration 저장 상태 제거.
+         *
+         * key 형식:
+         *
+         * cityId + "|" + dimension
+         */
+        String prefix =
+                cityId
+                        + "|";
+
+        pregenerationStates
+                .keySet()
+                .removeIf(
+                        key ->
+                                key.startsWith(
+                                        prefix
+                                )
+                );
+
+        /*
+         * 해당 도시의 공용 arrival position 제거.
+         */
+        clearCityArrivalPositions(
+                cityId
+        );
+
+        setDirty();
     }
 }

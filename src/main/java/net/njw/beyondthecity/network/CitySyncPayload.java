@@ -11,10 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 서버가 현재 접근 가능한 도시들의 snapshot을
- * 클라이언트로 전송하기 위한 payload.
+ * 서버에 존재하는 도시들의 snapshot을
+ * 클라이언트로 전송한다.
  *
- * SavedData용 City.CODEC과 네트워크 형식을 분리한다.
+ * UI에서는 모든 도시를 표시하고,
+ * BoundaryRenderer에서는 unlocked city만 사용한다.
  */
 public record CitySyncPayload(
         List<CityData> cities
@@ -66,6 +67,10 @@ public record CitySyncPayload(
                     city.name()
             );
 
+            buffer.writeBoolean(
+                    city.unlocked()
+            );
+
             buffer.writeVarInt(
                     city.regions().size()
             );
@@ -77,10 +82,6 @@ public record CitySyncPayload(
                         region.dimension()
                 );
 
-                /*
-                 * chunk 좌표는 음수가 될 수 있으므로
-                 * 일반 int로 기록한다.
-                 */
                 buffer.writeInt(
                         region.centerChunkX()
                 );
@@ -128,6 +129,9 @@ public record CitySyncPayload(
             String cityName =
                     buffer.readUtf();
 
+            boolean unlocked =
+                    buffer.readBoolean();
+
             int regionCount =
                     buffer.readVarInt();
 
@@ -171,6 +175,7 @@ public record CitySyncPayload(
                     new CityData(
                             cityId,
                             cityName,
+                            unlocked,
                             regions
                     )
             );
@@ -188,13 +193,14 @@ public record CitySyncPayload(
 
     /*
      * =========================================================
-     * Network DTO
+     * City DTO
      * =========================================================
      */
 
     public record CityData(
             String id,
             String name,
+            boolean unlocked,
             List<RegionData> regions
     ) {
 
@@ -206,7 +212,8 @@ public record CitySyncPayload(
         }
 
         public static CityData fromCity(
-                City city
+                City city,
+                boolean unlocked
         ) {
             List<RegionData> regions =
                     new ArrayList<>();
@@ -227,10 +234,17 @@ public record CitySyncPayload(
             return new CityData(
                     city.id(),
                     city.name(),
+                    unlocked,
                     regions
             );
         }
     }
+
+    /*
+     * =========================================================
+     * Region DTO
+     * =========================================================
+     */
 
     public record RegionData(
             Identifier dimension,

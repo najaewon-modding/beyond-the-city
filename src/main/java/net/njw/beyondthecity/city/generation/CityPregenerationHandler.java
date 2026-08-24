@@ -613,4 +613,76 @@ public final class CityPregenerationHandler {
             CityPregenerator pregenerator
     ) {
     }
+
+    public static void removeCity(
+            String cityId
+    ) {
+        int oldCurrentTaskIndex =
+                currentTaskIndex;
+
+        List<PregenerationTask> remainingTasks =
+                new ArrayList<>();
+
+        /*
+         * 기존 currentTaskIndex보다 앞에 있던
+         * task 중 유지되는 task의 개수를 계산한다.
+         *
+         * 이렇게 해야 list를 다시 만들었을 때
+         * 현재 작업 위치가 정확하게 유지된다.
+         */
+        int newCurrentTaskIndex =
+                0;
+
+        for (
+                int i = 0;
+                i < tasks.size();
+                i++
+        ) {
+            PregenerationTask task =
+                    tasks.get(
+                            i
+                    );
+
+            if (
+                    task.cityId()
+                            .equals(
+                                    cityId
+                            )
+            ) {
+                continue;
+            }
+
+            if (
+                    i
+                            < oldCurrentTaskIndex
+            ) {
+                newCurrentTaskIndex++;
+            }
+
+            remainingTasks.add(
+                    task
+            );
+        }
+
+        tasks.clear();
+
+        tasks.addAll(
+                remainingTasks
+        );
+
+        currentTaskIndex =
+                Math.min(
+                        newCurrentTaskIndex,
+                        tasks.size()
+                );
+
+        active =
+                currentTaskIndex
+                        < tasks.size();
+
+        BeyondtheCity.LOGGER.info(
+                "Removed pregeneration tasks for city {}.",
+                cityId
+        );
+    }
 }

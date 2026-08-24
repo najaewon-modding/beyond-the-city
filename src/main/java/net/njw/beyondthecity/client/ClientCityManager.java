@@ -14,18 +14,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 현재 접속 중인 서버에서 전달받은
- * accessible city snapshot을 보관한다.
- *
- * 서버의 SavedData와 달리
- * 영구 저장하지 않는 client-side cache이다.
- */
 @EventBusSubscriber(
         modid = BeyondtheCity.MODID,
         value = Dist.CLIENT
 )
 public final class ClientCityManager {
+
+    private static volatile List<ClientCity>
+            cities =
+            List.of();
 
     private static volatile List<ClientCity>
             accessibleCities =
@@ -39,6 +36,10 @@ public final class ClientCityManager {
      * Access
      * =========================================================
      */
+
+    public static List<ClientCity> getCities() {
+        return cities;
+    }
 
     public static List<ClientCity>
     getAccessibleCities() {
@@ -54,25 +55,42 @@ public final class ClientCityManager {
     public static void replaceCities(
             List<CitySyncPayload.CityData> networkCities
     ) {
-        List<ClientCity> cities =
+        List<ClientCity> all =
                 new ArrayList<>(
                         networkCities.size()
                 );
+
+        List<ClientCity> accessible =
+                new ArrayList<>();
 
         for (
                 CitySyncPayload.CityData networkCity :
                 networkCities
         ) {
-            cities.add(
+            ClientCity city =
                     ClientCity.fromNetwork(
                             networkCity
-                    )
+                    );
+
+            all.add(
+                    city
             );
+
+            if (city.unlocked()) {
+                accessible.add(
+                        city
+                );
+            }
         }
+
+        cities =
+                List.copyOf(
+                        all
+                );
 
         accessibleCities =
                 List.copyOf(
-                        cities
+                        accessible
                 );
     }
 
@@ -83,14 +101,13 @@ public final class ClientCityManager {
      */
 
     public static void clear() {
+        cities =
+                List.of();
+
         accessibleCities =
                 List.of();
     }
 
-    /**
-     * 다른 서버나 다른 singleplayer world로 이동할 때
-     * 이전 서버의 도시 정보가 잠깐이라도 남지 않게 한다.
-     */
     @SubscribeEvent
     public static void onClientLogout(
             ClientPlayerNetworkEvent.LoggingOut event
@@ -107,6 +124,7 @@ public final class ClientCityManager {
     public record ClientCity(
             String id,
             String name,
+            boolean unlocked,
             Map<Identifier, CityRegion> regions
     ) {
 
@@ -135,23 +153,21 @@ public final class ClientCityManager {
                     CitySyncPayload.RegionData region :
                     city.regions()
             ) {
-                CityRegion cityRegion =
+                regions.put(
+                        region.dimension(),
                         new CityRegion(
                                 region.centerChunkX(),
                                 region.centerChunkZ(),
                                 region.widthChunks(),
                                 region.heightChunks()
-                        );
-
-                regions.put(
-                        region.dimension(),
-                        cityRegion
+                        )
                 );
             }
 
             return new ClientCity(
                     city.id(),
                     city.name(),
+                    city.unlocked(),
                     regions
             );
         }

@@ -1,14 +1,13 @@
 package net.njw.beyondthecity.network;
 
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.njw.beyondthecity.city.CityTeleportService;
 
 public final class CityNetworkHandler {
 
     /*
-     * 이 payload의 protocol version.
-     *
-     * 저장 데이터 버전과는 관계없고
-     * 네트워크 protocol 버전이다.
+     * 네트워크 protocol version.
      */
     private static final String NETWORK_VERSION =
             "1";
@@ -19,12 +18,39 @@ public final class CityNetworkHandler {
     public static void registerPayloads(
             RegisterPayloadHandlersEvent event
     ) {
-        event.registrar(
+        PayloadRegistrar registrar =
+                event.registrar(
                         NETWORK_VERSION
-                )
-                .playToClient(
-                        CitySyncPayload.TYPE,
-                        CitySyncPayload.STREAM_CODEC
                 );
+
+        /*
+         * =====================================================
+         * Server -> Client
+         * =====================================================
+         *
+         * 도시 목록 동기화.
+         *
+         * client handler는
+         * CityClientNetworkHandler에서 등록한다.
+         */
+
+        registrar.playToClient(
+                CitySyncPayload.TYPE,
+                CitySyncPayload.STREAM_CODEC
+        );
+
+        /*
+         * =====================================================
+         * Client -> Server
+         * =====================================================
+         *
+         * 도시 이동 요청.
+         */
+
+        registrar.playToServer(
+                CityTeleportRequestPayload.TYPE,
+                CityTeleportRequestPayload.STREAM_CODEC,
+                CityTeleportService::handleRequest
+        );
     }
 }

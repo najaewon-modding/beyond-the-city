@@ -1,13 +1,4 @@
 {
-  "itemGroup.njw_beyond_the_city": "Example Mod Tab",
-  "block.njw_beyond_the_city.example_block": "Example Block",
-  "item.njw_beyond_the_city.example_item": "Example Item",
-
-  "njw_beyond_the_city.configuration.title": "Beyond the City Configs",
-  "njw_beyond_the_city.configuration.section.njw_beyond_the_city.common.toml": "Beyond the City Configs",
-  "njw_beyond_the_city.configuration.section.njw_beyond_the_city.common.toml.title": "Beyond the City Configs",
-  "njw_beyond_the_city.configuration.items": "Item List",
-  "njw_beyond_the_city.configuration.logDirtBlock": "Log Dirt Block",
-  "njw_beyond_the_city.configuration.magicNumberIntroduction": "Magic Number Text",
-  "njw_beyond_the_city.configuration.magicNumber": "Magic Number"
+  "key.category.njw_beyond_the_city.city": "Beyond the City",
+  "key.njw_beyond_the_city.open_city_list": "Open City List"
 }

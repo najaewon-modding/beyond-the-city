@@ -107,13 +107,20 @@ public final class CitySyncService {
 
         for (
                 City city :
-                CityManager.getAccessibleCities(
+                CityManager.getCities(
                         server
                 )
         ) {
+            boolean unlocked =
+                    CityManager.isCityAccessible(
+                            server,
+                            city.id()
+                    );
+
             cities.add(
                     CitySyncPayload.CityData.fromCity(
-                            city
+                            city,
+                            unlocked
                     )
             );
         }

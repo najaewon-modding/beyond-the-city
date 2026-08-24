@@ -122,6 +122,17 @@ public final class CityManager {
         );
     }
 
+    public static void removeCity(
+            MinecraftServer server,
+            String cityId
+    ) {
+        getSavedData(
+                server
+        ).removeCity(
+                cityId
+        );
+    }
+
     /*
      * =========================================================
      * Accessibility
@@ -146,6 +157,69 @@ public final class CityManager {
         getSavedData(
                 server
         ).unlockCity(
+                cityId
+        );
+    }
+
+    /*
+     * =========================================================
+     * City Arrival Position
+     * =========================================================
+     */
+
+    public static CitySavedData.CityArrivalPosition
+    getCityArrivalPosition(
+            MinecraftServer server,
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        return getSavedData(
+                server
+        ).getCityArrivalPosition(
+                cityId,
+                dimension
+        );
+    }
+
+    public static void setCityArrivalPosition(
+            MinecraftServer server,
+            String cityId,
+            ResourceKey<Level> dimension,
+            int blockX,
+            int y,
+            int blockZ
+    ) {
+        getSavedData(
+                server
+        ).setCityArrivalPosition(
+                cityId,
+                dimension,
+                blockX,
+                y,
+                blockZ
+        );
+    }
+
+    public static void clearCityArrivalPosition(
+            MinecraftServer server,
+            String cityId,
+            ResourceKey<Level> dimension
+    ) {
+        getSavedData(
+                server
+        ).clearCityArrivalPosition(
+                cityId,
+                dimension
+        );
+    }
+
+    public static void clearCityArrivalPositions(
+            MinecraftServer server,
+            String cityId
+    ) {
+        getSavedData(
+                server
+        ).clearCityArrivalPositions(
                 cityId
         );
     }
